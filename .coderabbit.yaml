@@ -1,0 +1,53 @@
+
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+
+# 리뷰 언어: 한국어
+language: "ko-KR"
+
+reviews:
+  # 실제 오류와 중요한 개선 사항 중심
+  profile: "chill"
+
+  # PR 요약 자동 생성
+  high_level_summary: true
+
+  # 리뷰 완료 후 자동 승인하지 않음
+  request_changes_workflow: false
+
+  # PR 자동 리뷰
+  auto_review:
+    enabled: true
+    drafts: false
+    auto_incremental_review: true
+    base_branches:
+      - main
+      - develop
+
+  # 빌드 결과물 및 캐시 제외
+  path_filters:
+    - "!build/**"
+    - "!.gradle/**"
+
+  # 프로젝트 맞춤 리뷰 기준
+  path_instructions:
+    - path: "src/main/java/**/*.java"
+      instructions: |
+        Spring Boot 백엔드 프로젝트입니다.
+        버그, 예외 처리, 트랜잭션, 보안 취약점,
+        null 처리 및 유지보수성을 중점적으로 리뷰하세요.
+        단순 스타일 지적보다 실제 오류 가능성을 우선하세요.
+
+    - path: "src/main/java/**/auth/**/*.java"
+      instructions: |
+        JWT 인증, 비밀번호 처리, 인가 검증,
+        민감 정보 노출 여부를 중점적으로 검토하세요.
+
+    - path: "src/main/java/**/senior/**/*.java"
+      instructions: |
+        시니어와 보호자 간 접근 권한 검증,
+        개인정보 보호 및 입력값 검증을 확인하세요.
+
+    - path: "src/main/resources/application.yml"
+      instructions: |
+        환경변수 사용 여부와 비밀정보 노출,
+        운영 환경의 보안 설정을 확인하세요.
