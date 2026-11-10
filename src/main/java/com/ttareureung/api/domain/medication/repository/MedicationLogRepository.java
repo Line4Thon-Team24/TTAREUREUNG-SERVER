@@ -1,0 +1,21 @@
+package com.ttareureung.api.domain.medication.repository;
+
+import com.ttareureung.api.domain.medication.entity.MedicationLog;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+import java.time.LocalDate;
+import java.util.List;
+
+public interface MedicationLogRepository extends JpaRepository<MedicationLog, Long> {
+
+    @Query("""
+            select l from MedicationLog l
+            join fetch l.medication m
+            where m.seniorProfileId = :seniorId
+              and l.targetDate = :date
+            """)
+    List<MedicationLog> findDailyLogs(@Param("seniorId") Long seniorId,
+                                      @Param("date") LocalDate date);
+}
