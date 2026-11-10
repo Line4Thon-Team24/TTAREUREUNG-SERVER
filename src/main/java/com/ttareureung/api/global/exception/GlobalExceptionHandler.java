@@ -4,6 +4,11 @@ package com.ttareureung.api.global.exception;
 import com.ttareureung.api.global.common.BaseResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
@@ -39,6 +44,31 @@ public class GlobalExceptionHandler {
                         errorCode.getCode(),
                         errorCode.getMessage()
                 ));
+    }
+
+    @ExceptionHandler({MethodArgumentNotValidException.class, HttpMessageNotReadableException.class})
+    public ResponseEntity<BaseResponse<Void>> handleInvalidInput() {
+        return errorResponse(GlobalErrorCode.INVALID_INPUT);
+    }
+
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    public ResponseEntity<BaseResponse<Void>> handleUnsupportedMediaType() {
+        return errorResponse(GlobalErrorCode.UNSUPPORTED_MEDIA_TYPE);
+    }
+
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<BaseResponse<Void>> handleAuthenticationException() {
+        return errorResponse(GlobalErrorCode.UNAUTHORIZED);
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<BaseResponse<Void>> handleAccessDeniedException() {
+        return errorResponse(GlobalErrorCode.FORBIDDEN);
+    }
+
+    private ResponseEntity<BaseResponse<Void>> errorResponse(GlobalErrorCode errorCode) {
+        return ResponseEntity.status(errorCode.getStatus())
+                .body(BaseResponse.error(errorCode.getCode(), errorCode.getMessage()));
     }
 
     @ExceptionHandler(Exception.class)

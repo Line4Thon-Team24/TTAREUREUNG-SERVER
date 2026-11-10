@@ -35,6 +35,12 @@ public enum GlobalErrorCode implements ErrorCode {
             "요청이 현재 데이터 상태와 충돌합니다."
     ),
 
+    UNSUPPORTED_MEDIA_TYPE(
+            HttpStatus.UNSUPPORTED_MEDIA_TYPE,
+            "COMMON_415",
+            "지원하지 않는 요청 형식입니다."
+    ),
+
     INTERNAL_SERVER_ERROR(
             HttpStatus.INTERNAL_SERVER_ERROR,
             "COMMON_500",
