@@ -19,7 +19,7 @@ public class Medication {
     private Long id;
 
     @Column(name = "senior_profile_id", nullable = false)
-    private Long seniorProfileId; // 이후 Profile 연관관계로 수정 예정
+    private Long seniorProfileId; // 이후 Profile 연관관계로 수정할 예정
 
     @Column(name = "drug_name", nullable = false, length = 100)
     private String drugName;
