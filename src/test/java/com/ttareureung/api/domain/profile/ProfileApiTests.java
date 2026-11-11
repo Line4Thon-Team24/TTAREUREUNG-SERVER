@@ -28,6 +28,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -70,6 +71,7 @@ class ProfileApiTests {
         request.put("birthDate", "1950-03-15");
         request.put("gender", "FEMALE");
         request.put("phoneNumber", "010-1234-5678");
+        request.put("relationship", " 어머니 ");
 
         MvcResult result = create(accountId, request)
                 .andExpect(status().isCreated())
@@ -78,6 +80,7 @@ class ProfileApiTests {
                 .andExpect(jsonPath("$.data.birthDate").value("1950-03-15"))
                 .andExpect(jsonPath("$.data.gender").value("FEMALE"))
                 .andExpect(jsonPath("$.data.phoneNumber").value("010-1234-5678"))
+                .andExpect(jsonPath("$.data.relationship").value("어머니"))
                 .andExpect(jsonPath("$.data.role").value("SENIOR"))
                 .andReturn();
 
@@ -85,6 +88,7 @@ class ProfileApiTests {
         var row = jdbcTemplate.queryForMap("SELECT * FROM profiles WHERE id = ?", profileId);
         assertThat(((Number) row.get("account_id")).longValue()).isEqualTo(accountId);
         assertThat(row.get("role")).isEqualTo("SENIOR");
+        assertThat(row.get("relationship")).isEqualTo("어머니");
         assertThat(row.get("created_at")).isNotNull();
         assertThat(row.get("updated_at")).isNotNull();
     }
@@ -94,13 +98,15 @@ class ProfileApiTests {
         long accountId = newAccount();
         var request = profile("이희창", "GUARDIAN");
         request.put("phoneNumber", " ");
+        request.put("relationship", "");
 
         create(accountId, request)
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.data.role").value("GUARDIAN"))
                 .andExpect(jsonPath("$.data.birthDate").isEmpty())
                 .andExpect(jsonPath("$.data.gender").isEmpty())
-                .andExpect(jsonPath("$.data.phoneNumber").isEmpty());
+                .andExpect(jsonPath("$.data.phoneNumber").isEmpty())
+                .andExpect(jsonPath("$.data.relationship").isEmpty());
     }
 
     @Test
@@ -150,6 +156,136 @@ class ProfileApiTests {
     }
 
     @Test
+    void findsOwnProfileDetail() throws Exception {
+        long accountId = newAccount();
+        var request = profile("보호자", "GUARDIAN");
+        request.put("relationship", "첫째 아들");
+        long profileId = createAndGetId(accountId, request);
+
+        mockMvc.perform(get("/api/v1/profiles/{id}", profileId).header(HttpHeaders.AUTHORIZATION, bearer(accountId)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.profileId").value(profileId))
+                .andExpect(jsonPath("$.data.name").value("보호자"))
+                .andExpect(jsonPath("$.data.relationship").value("첫째 아들"))
+                .andExpect(jsonPath("$.data.role").value("GUARDIAN"));
+    }
+
+    @Test
+    void otherAccountsProfileLooksLikeNotFound() throws Exception {
+        long owner = newAccount();
+        long profileId = createAndGetId(owner, profile("보호자", "GUARDIAN"));
+        String stranger = bearer(newAccount());
+
+        mockMvc.perform(get("/api/v1/profiles/{id}", profileId).header(HttpHeaders.AUTHORIZATION, stranger))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("PROFILE_002"));
+        update(stranger, profileId, "{\"name\":\"바꿈\"}")
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("PROFILE_002"));
+        assertThat(jdbcTemplate.queryForObject("SELECT name FROM profiles WHERE id = ?", String.class, profileId))
+                .isEqualTo("보호자");
+
+        mockMvc.perform(get("/api/v1/profiles/{id}", Long.MAX_VALUE).header(HttpHeaders.AUTHORIZATION, bearer(owner)))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("PROFILE_002"));
+    }
+
+    @Test
+    void rejectsNonNumericProfileIdAndMissingToken() throws Exception {
+        mockMvc.perform(get("/api/v1/profiles/abc").header(HttpHeaders.AUTHORIZATION, bearer(newAccount())))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("COMMON_400"));
+        mockMvc.perform(get("/api/v1/profiles/1"))
+                .andExpect(status().isUnauthorized());
+        mockMvc.perform(patch("/api/v1/profiles/1")
+                        .contentType(MediaType.APPLICATION_JSON).content("{}"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void updateChangesOnlySentFields() throws Exception {
+        long accountId = newAccount();
+        var request = profile("보호자", "GUARDIAN");
+        request.put("birthDate", "1970-01-01");
+        request.put("gender", "MALE");
+        request.put("phoneNumber", "010-1111-2222");
+        long profileId = createAndGetId(accountId, request);
+
+        update(bearer(accountId), profileId, "{\"name\":\" 홍길동 \",\"relationship\":\"첫째 아들\",\"role\":\"SENIOR\"}")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.name").value("홍길동"))
+                .andExpect(jsonPath("$.data.relationship").value("첫째 아들"))
+                .andExpect(jsonPath("$.data.birthDate").value("1970-01-01"))
+                .andExpect(jsonPath("$.data.gender").value("MALE"))
+                .andExpect(jsonPath("$.data.phoneNumber").value("010-1111-2222"))
+                .andExpect(jsonPath("$.data.role").value("GUARDIAN"));
+
+        var row = jdbcTemplate.queryForMap("SELECT * FROM profiles WHERE id = ?", profileId);
+        assertThat(row.get("name")).isEqualTo("홍길동");
+        assertThat(row.get("relationship")).isEqualTo("첫째 아들");
+        assertThat(row.get("role")).isEqualTo("GUARDIAN");
+    }
+
+    @Test
+    void updateClearsPhoneAndRelationshipWithEmptyString() throws Exception {
+        long accountId = newAccount();
+        var request = profile("보호자", "GUARDIAN");
+        request.put("phoneNumber", "010-1111-2222");
+        request.put("relationship", "첫째 아들");
+        long profileId = createAndGetId(accountId, request);
+
+        update(bearer(accountId), profileId, "{\"phoneNumber\":\"\",\"relationship\":\" \"}")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.phoneNumber").isEmpty())
+                .andExpect(jsonPath("$.data.relationship").isEmpty())
+                .andExpect(jsonPath("$.data.name").value("보호자"));
+
+        update(bearer(accountId), profileId, "{}")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.name").value("보호자"));
+    }
+
+    @ParameterizedTest(name = "invalid update case {index}")
+    @ValueSource(strings = {
+            "{\"name\":\"   \"}",
+            "{\"phoneNumber\":\"abc-1234\"}",
+            "{\"gender\":\"OTHER\"}",
+            "{\"birthDate\":\"1950/03/15\"}",
+            "{\"relationship\":\"가나다라마바사아자차카타파하가나다라마바사\"}"
+    })
+    void rejectsInvalidUpdate(String body) throws Exception {
+        long accountId = newAccount();
+        long profileId = createAndGetId(accountId, profile("보호자", "GUARDIAN"));
+
+        update(bearer(accountId), profileId, body)
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("COMMON_400"));
+    }
+
+    @Test
+    void rejectsTooLongNameAndFutureBirthDateOnUpdate() throws Exception {
+        long accountId = newAccount();
+        long profileId = createAndGetId(accountId, profile("보호자", "GUARDIAN"));
+
+        update(bearer(accountId), profileId, "{\"name\":\"" + "가".repeat(51) + "\"}")
+                .andExpect(status().isBadRequest());
+        update(bearer(accountId), profileId, "{\"birthDate\":\"" + LocalDate.now().plusDays(1) + "\"}")
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void inactiveAccountCannotUpdateProfile() throws Exception {
+        long accountId = newAccount();
+        String token = bearer(accountId);
+        long profileId = createAndGetId(accountId, profile("보호자", "GUARDIAN"));
+        jdbcTemplate.update("UPDATE accounts SET status = 'INACTIVE' WHERE id = ?", accountId);
+
+        update(token, profileId, "{\"name\":\"바꿈\"}")
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("AUTH_005"));
+    }
+
+    @Test
     void requiresAccessToken() throws Exception {
         mockMvc.perform(get("/api/v1/profiles"))
                 .andExpect(status().isUnauthorized())
@@ -181,7 +317,8 @@ class ProfileApiTests {
             "{\"name\":\"이름\",\"role\":\"ADMIN\"}",
             "{\"name\":\"이름\",\"role\":\"SENIOR\",\"gender\":\"OTHER\"}",
             "{\"name\":\"이름\",\"role\":\"SENIOR\",\"phoneNumber\":\"abc-1234\"}",
-            "{\"name\":\"이름\",\"role\":\"SENIOR\",\"birthDate\":\"1950/03/15\"}"
+            "{\"name\":\"이름\",\"role\":\"SENIOR\",\"birthDate\":\"1950/03/15\"}",
+            "{\"name\":\"이름\",\"role\":\"GUARDIAN\",\"relationship\":\"가나다라마바사아자차카타파하가나다라마바사\"}"
     })
     void rejectsInvalidRequest(String body) throws Exception {
         mockMvc.perform(post("/api/v1/profiles").header(HttpHeaders.AUTHORIZATION, bearer(newAccount()))
@@ -206,13 +343,13 @@ class ProfileApiTests {
         var docs = jsonMapper.readTree(result.getResponse().getContentAsString());
         assertThat(docs.path("security").get(0).has("bearerAuth")).isTrue();
 
-        // 프로필 API는 전역 설정을 그대로 따르고, 토큰 파라미터가 따로 노출되지 않는다.
+        // 프로필 API는 전역 Bearer 설정 사용, 별도 토큰 파라미터 없음
         var profileApi = docs.path("paths").path("/api/v1/profiles");
         assertThat(profileApi.path("get").has("security")).isFalse();
         assertThat(profileApi.path("get").path("parameters").isEmpty()).isTrue();
         assertThat(profileApi.path("post").has("security")).isFalse();
 
-        // 인증·Health API는 빈 security로 덮어써서 토큰을 보내지 않는다.
+        // 인증·Health API는 빈 security로 토큰 전송 제외
         for (String path : List.of("/api/v1/auth/signup", "/api/v1/auth/login", "/api/v1/auth/refresh", "/api/v1/auth/logout")) {
             assertThat(docs.path("paths").path(path).path("post").path("security").isEmpty()).as(path).isTrue();
             assertThat(docs.path("paths").path(path).path("post").has("security")).as(path).isTrue();
@@ -236,6 +373,17 @@ class ProfileApiTests {
         request.put("name", name);
         request.put("role", role);
         return request;
+    }
+
+    private long createAndGetId(long accountId, Map<String, String> request) throws Exception {
+        MvcResult result = create(accountId, request).andExpect(status().isCreated()).andReturn();
+        return jsonMapper.readTree(result.getResponse().getContentAsString()).path("data").path("profileId").asLong();
+    }
+
+    private ResultActions update(String token, long profileId, String body) throws Exception {
+        return mockMvc.perform(patch("/api/v1/profiles/{id}", profileId)
+                .header(HttpHeaders.AUTHORIZATION, token)
+                .contentType(MediaType.APPLICATION_JSON).content(body));
     }
 
     private ResultActions create(long accountId, Map<String, String> request) throws Exception {

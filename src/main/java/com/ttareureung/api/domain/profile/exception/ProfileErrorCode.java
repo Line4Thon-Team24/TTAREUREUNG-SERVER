@@ -5,11 +5,18 @@ import org.springframework.http.HttpStatus;
 
 public enum ProfileErrorCode implements ErrorCode {
 
-    // 회원가입 때 보호자를 먼저 등록하는 흐름이라, 보호자 없는 계정에 시니어가 생기지 않게 막는다.
+    // 가입 흐름상 보호자 등록이 먼저라 보호자 없는 계정의 시니어 생성 차단
     GUARDIAN_REQUIRED(
             HttpStatus.CONFLICT,
             "PROFILE_001",
             "보호자 프로필을 먼저 등록해주세요."
+    ),
+
+    // 다른 계정 프로필도 404 처리. 403이면 ID 존재 여부가 드러남
+    PROFILE_NOT_FOUND(
+            HttpStatus.NOT_FOUND,
+            "PROFILE_002",
+            "프로필을 찾을 수 없습니다."
     );
 
     private final HttpStatus status;

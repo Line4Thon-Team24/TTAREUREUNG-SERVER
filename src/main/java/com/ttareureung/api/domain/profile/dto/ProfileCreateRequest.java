@@ -28,13 +28,18 @@ public record ProfileCreateRequest(
         @Schema(example = "010-1234-5678", description = "선택 입력")
         String phoneNumber,
 
+        @Size(max = 20, message = "관계는 20자 이하여야 합니다.")
+        @Schema(example = "어머니", description = "선택 입력", maxLength = 20)
+        String relationship,
+
         @NotNull(message = "프로필 역할을 선택해주세요.")
         @Schema(example = "SENIOR")
         ProfileRole role
 ) {
     public ProfileCreateRequest {
         name = name == null ? null : name.strip();
-        // 선택 항목을 빈 문자열로 보내는 경우도 입력하지 않은 것으로 처리
+        // 선택 항목의 빈 문자열은 미입력 처리
         phoneNumber = phoneNumber == null || phoneNumber.isBlank() ? null : phoneNumber.strip();
+        relationship = relationship == null || relationship.isBlank() ? null : relationship.strip();
     }
 }

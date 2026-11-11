@@ -25,7 +25,7 @@ import java.time.LocalDate;
 
 /**
  * 가족 공통 계정(Account) 안에 속한 보호자/시니어 프로필.
- * 시니어 등록도 role이 SENIOR인 프로필을 만드는 것으로 처리한다. (ERD에서 seniors 테이블을 profiles로 통합)
+ * 시니어 등록도 role=SENIOR 프로필 생성으로 처리 (ERD의 seniors를 profiles로 통합)
  */
 @Getter
 @Entity
@@ -41,7 +41,7 @@ public class Profile extends BaseTimeEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // 프로필 목록을 볼 때 계정 정보까지 매번 조회하지 않도록 지연 로딩
+    // 목록 조회 시 계정까지 매번 조회하지 않도록 지연 로딩
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "account_id", nullable = false)
     private Account account;
@@ -60,19 +60,32 @@ public class Profile extends BaseTimeEntity {
     @Column(name = "phone_number", length = 20)
     private String phoneNumber;
 
-    // 연결 정보와 약 데이터가 역할에 묶이기 때문에 생성 후에는 바꾸지 않는다.
+    // 화면에 그대로 노출하는 값("어머니", "첫째 아들")이라 자유 텍스트. 최초 보호자는 가입 시 생략 가능
+    @Column(length = 20)
+    private String relationship;
+
+    // 연결·약 데이터가 역할에 묶여 있어 생성 후 변경 불가
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.VARCHAR)
     @Column(nullable = false, length = 20)
     private ProfileRole role;
 
     public Profile(Account account, String name, LocalDate birthDate, Gender gender,
-                   String phoneNumber, ProfileRole role) {
+                   String phoneNumber, String relationship, ProfileRole role) {
         this.account = account;
         this.name = name;
         this.birthDate = birthDate;
         this.gender = gender;
         this.phoneNumber = phoneNumber;
+        this.relationship = relationship;
         this.role = role;
+    }
+
+    public void update(String name, LocalDate birthDate, Gender gender, String phoneNumber, String relationship) {
+        this.name = name;
+        this.birthDate = birthDate;
+        this.gender = gender;
+        this.phoneNumber = phoneNumber;
+        this.relationship = relationship;
     }
 }
