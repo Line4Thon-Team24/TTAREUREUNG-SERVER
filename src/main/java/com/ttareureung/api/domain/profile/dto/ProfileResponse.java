@@ -13,10 +13,11 @@ public record ProfileResponse(
         @Schema(example = "1950-03-15") LocalDate birthDate,
         @Schema(example = "FEMALE") Gender gender,
         @Schema(example = "010-1234-5678") String phoneNumber,
+        @Schema(example = "어머니") String relationship,
         @Schema(example = "SENIOR") ProfileRole role
 ) {
     public static ProfileResponse from(Profile profile) {
         return new ProfileResponse(profile.getId(), profile.getName(), profile.getBirthDate(),
-                profile.getGender(), profile.getPhoneNumber(), profile.getRole());
+                profile.getGender(), profile.getPhoneNumber(), profile.getRelationship(), profile.getRole());
     }
 }
