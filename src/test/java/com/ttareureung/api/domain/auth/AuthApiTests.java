@@ -58,7 +58,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Import(AuthApiTests.ProtectedEndpoint.class)
 class AuthApiTests {
 
-    private static final String PASSWORD = "Password123";
+    private static final String PASSWORD = "Password123!";
     private static final String SECRET = "auth-test-secret-key-at-least-32-bytes";
     private static final String COOKIE_NAME = "refresh_token";
     private final JsonMapper jsonMapper = JsonMapper.builder().build();
@@ -122,17 +122,36 @@ class AuthApiTests {
 
     @ParameterizedTest(name = "case {index}")
     @NullAndEmptySource
-    @ValueSource(strings = {"Abc1234", "Abc12345678901234", "abcdefgh", "12345678", "Password1!", "Password 1", " Password1"})
+    @ValueSource(strings = {"Abc123!", "Abcdefgh123456789012!", "abcdefgh!", "12345678!", "Password123",
+            "Password 1!", " Password1!", "Password1!한"})
     void rejectsInvalidSignupPassword(String password) throws Exception {
         credentials("signup", newEmail(), password).andExpect(status().isBadRequest());
     }
 
     @ParameterizedTest(name = "case {index}")
-    @ValueSource(strings = {"Abcd1234", "Abcd123456789012"})
-    void acceptsPasswordLengthBoundaries(String password) throws Exception {
-        MvcResult result = credentials("signup", newEmail(), password)
-                .andExpect(status().isCreated()).andReturn();
-        accountIds.add(jsonMapper.readTree(result.getResponse().getContentAsString()).path("data").path("accountId").asLong());
+    @ValueSource(strings = {"Abcd123!", "Abcd123!Abcd123!Abcd", "a1!@#$%^&*()", "a1~`[]{}\\|;:", "a1'\",.<>/?-_=+"})
+    void acceptsPasswordLengthBoundariesAndSpecialCharacters(String password) throws Exception {
+        signupWith(newEmail(), password);
+    }
+
+    @Test
+    void loginAcceptsUpTo20CharacterPassword() throws Exception {
+        String email = newEmail();
+        String password = "Abcd123!Abcd123!Abcd";
+        signupWith(email, password);
+
+        credentials("login", email, password).andExpect(status().isOk());
+        credentials("login", email, password + "a").andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void accountCreatedUnderOldPasswordRuleCanStillLogin() throws Exception {
+        String email = newEmail();
+        jdbcTemplate.update("INSERT INTO accounts (email, password, status, created_at, updated_at) VALUES (?, ?, 'ACTIVE', NOW(), NOW())",
+                email, passwordEncoder.encode("Password123"));
+        accountIds.add(jdbcTemplate.queryForObject("SELECT id FROM accounts WHERE email = ?", Long.class, email));
+
+        credentials("login", email, "Password123").andExpect(status().isOk());
     }
 
     @Test
@@ -401,7 +420,11 @@ class AuthApiTests {
     }
 
     private long signup(String email) throws Exception {
-        MvcResult result = credentials("signup", email, PASSWORD)
+        return signupWith(email, PASSWORD);
+    }
+
+    private long signupWith(String email, String password) throws Exception {
+        MvcResult result = credentials("signup", email, password)
                 .andExpect(status().isCreated()).andReturn();
         long id = jsonMapper.readTree(result.getResponse().getContentAsString()).path("data").path("accountId").asLong();
         accountIds.add(id);
