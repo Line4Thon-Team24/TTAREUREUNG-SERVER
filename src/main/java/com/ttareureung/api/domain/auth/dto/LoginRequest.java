@@ -15,8 +15,9 @@ public record LoginRequest(
         String email,
 
         @NotBlank(message = "비밀번호를 입력해주세요.")
-        @Size(max = 16, message = "비밀번호는 16자 이하여야 합니다.")
-        @Schema(example = "Password123", accessMode = Schema.AccessMode.WRITE_ONLY)
+        // 형식은 검사하지 않고 길이만 막는다. 규칙 변경 전에 가입한 계정(특수문자 없음)도 로그인할 수 있어야 한다.
+        @Size(max = 20, message = "비밀번호는 20자 이하여야 합니다.")
+        @Schema(example = "Password123!", accessMode = Schema.AccessMode.WRITE_ONLY)
         String password
 ) {
     public LoginRequest {
