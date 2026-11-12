@@ -1,5 +1,6 @@
 package com.ttareureung.api.global.config;
 
+import com.ttareureung.api.global.health.HealthController;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -13,7 +14,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(properties = "cors.allowed-origins=http://localhost:5173")
+@WebMvcTest(controllers = HealthController.class, properties = {
+        "cors.allowed-origins=http://localhost:5173",
+        "jwt.secret=cors-test-secret-key-at-least-32-bytes"
+})
 @Import(SecurityConfig.class)
 class CorsConfigTests {
 
@@ -59,7 +63,7 @@ class CorsConfigTests {
     void allowedOriginDoesNotBypassProtectedPath() throws Exception {
         mockMvc.perform(get("/api/v1/seniors")
                         .header(HttpHeaders.ORIGIN, "http://localhost:5173"))
-                .andExpect(status().isForbidden())
+                .andExpect(status().isUnauthorized())
                 .andExpect(header().string(
                         HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "http://localhost:5173"));
     }
