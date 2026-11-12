@@ -16,6 +16,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -85,6 +86,19 @@ public class ProfileController {
                                                                 @PathVariable Long profileId,
                                                                 @Valid @RequestBody ProfileUpdateRequest request) {
         return ResponseEntity.ok(BaseResponse.success(profileService.update(accountId(jwt), profileId, request)));
+    }
+
+    @Operation(summary = "프로필 삭제", description = "프로필과 그 프로필의 보호자-시니어 연결을 함께 삭제합니다. 시니어가 있는 계정의 마지막 보호자는 삭제할 수 없습니다.")
+    @ApiResponse(responseCode = "200", description = "삭제 성공")
+    @ApiResponse(responseCode = "400", description = "profileId 형식 오류", content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+    @ApiResponse(responseCode = "401", description = "Access Token 누락·만료", content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+    @ApiResponse(responseCode = "403", description = "비활성 계정 (AUTH_005)", content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+    @ApiResponse(responseCode = "404", description = "없는 프로필 또는 다른 계정의 프로필 (PROFILE_002)", content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+    @ApiResponse(responseCode = "409", description = "시니어가 있는 계정의 마지막 보호자 (PROFILE_006)", content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+    @DeleteMapping("/{profileId}")
+    public ResponseEntity<BaseResponse<Void>> delete(@AuthenticationPrincipal Jwt jwt, @PathVariable Long profileId) {
+        profileService.delete(accountId(jwt), profileId);
+        return ResponseEntity.ok(BaseResponse.successWithoutData());
     }
 
     // subject 숫자 여부는 JwtConfig에서 검증 완료
