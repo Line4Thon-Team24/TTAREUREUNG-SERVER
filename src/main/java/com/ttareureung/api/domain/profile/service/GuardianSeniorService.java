@@ -52,6 +52,14 @@ public class GuardianSeniorService {
         }
     }
 
+    // 시니어의 마지막 연결 해제도 허용. 연결 없는 시니어는 프로필 목록에 남아 다시 연결 가능
+    public void unlink(Long accountId, Long linkId) {
+        accessChecker.activeAccount(accountId);
+        GuardianSenior link = links.findByIdAndAccountId(linkId, accountId)
+                .orElseThrow(() -> new CustomException(ProfileErrorCode.LINK_NOT_FOUND));
+        links.delete(link);
+    }
+
     // profileId가 없으면 계정 전체 연결, 있으면 해당 프로필이 포함된 연결만
     @Transactional(readOnly = true)
     public List<GuardianSeniorResponse> findAll(Long accountId, Long profileId) {
