@@ -17,6 +17,18 @@ public enum ProfileErrorCode implements ErrorCode {
             HttpStatus.NOT_FOUND,
             "PROFILE_002",
             "프로필을 찾을 수 없습니다."
+    ),
+
+    INVALID_LINK_ROLE(
+            HttpStatus.BAD_REQUEST,
+            "PROFILE_003",
+            "보호자 프로필과 시니어 프로필끼리만 연결할 수 있습니다."
+    ),
+
+    ALREADY_LINKED(
+            HttpStatus.CONFLICT,
+            "PROFILE_004",
+            "이미 연결된 보호자와 시니어입니다."
     );
 
     private final HttpStatus status;
