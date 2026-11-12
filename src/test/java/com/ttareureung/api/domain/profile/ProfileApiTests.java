@@ -58,6 +58,10 @@ class ProfileApiTests {
     @AfterEach
     void cleanUpCreatedAccounts() {
         for (Long id : accountIds) {
+            jdbcTemplate.update("""
+                    DELETE gs FROM guardian_seniors gs
+                    JOIN profiles p ON gs.guardian_profile_id = p.id
+                    WHERE p.account_id = ?""", id);
             jdbcTemplate.update("DELETE FROM profiles WHERE account_id = ?", id);
             jdbcTemplate.update("DELETE FROM accounts WHERE id = ?", id);
         }
@@ -286,6 +290,76 @@ class ProfileApiTests {
     }
 
     @Test
+    void createsSeniorLinkedToGuardianInOneRequest() throws Exception {
+        long accountId = newAccount();
+        long guardianId = createAndGetId(accountId, profile("홍길동", "GUARDIAN"));
+        var request = profile("김순자", "SENIOR");
+        request.put("guardianProfileId", guardianId);
+
+        MvcResult result = create(accountId, request)
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.linkedProfiles.length()").value(1))
+                .andExpect(jsonPath("$.data.linkedProfiles[0].profileId").value(guardianId))
+                .andExpect(jsonPath("$.data.linkedProfiles[0].name").value("홍길동"))
+                .andReturn();
+        long seniorId = jsonMapper.readTree(result.getResponse().getContentAsString()).path("data").path("profileId").asLong();
+
+        var link = jdbcTemplate.queryForMap("SELECT * FROM guardian_seniors WHERE senior_profile_id = ?", seniorId);
+        assertThat(((Number) link.get("guardian_profile_id")).longValue()).isEqualTo(guardianId);
+        assertThat(link.get("status")).isEqualTo("ACTIVE");
+    }
+
+    @Test
+    void invalidGuardianProfileIdRollsBackSeniorCreation() throws Exception {
+        long accountId = newAccount();
+        long guardianId = createAndGetId(accountId, profile("홍길동", "GUARDIAN"));
+        long otherGuardianId = createAndGetId(newAccount(), profile("남의 보호자", "GUARDIAN"));
+
+        var seniorAsGuardian = profile("시니어1", "SENIOR");
+        seniorAsGuardian.put("guardianProfileId", otherGuardianId);
+        create(accountId, seniorAsGuardian)
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("PROFILE_002"));
+
+        var guardianWithLink = profile("보호자2", "GUARDIAN");
+        guardianWithLink.put("guardianProfileId", guardianId);
+        create(accountId, guardianWithLink)
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("PROFILE_003"));
+
+        long seniorId = createAndGetId(accountId, profile("시니어2", "SENIOR"));
+        var linkToSenior = profile("시니어3", "SENIOR");
+        linkToSenior.put("guardianProfileId", seniorId);
+        create(accountId, linkToSenior)
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("PROFILE_003"));
+
+        assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM profiles WHERE account_id = ?", Long.class, accountId))
+                .isEqualTo(2);
+    }
+
+    @Test
+    void listAndDetailIncludeLinkedProfiles() throws Exception {
+        long accountId = newAccount();
+        long guardianId = createAndGetId(accountId, profile("홍길동", "GUARDIAN"));
+        long subGuardianId = createAndGetId(accountId, profile("아무개", "GUARDIAN"));
+        var senior = profile("김순자", "SENIOR");
+        senior.put("guardianProfileId", guardianId);
+        long seniorId = createAndGetId(accountId, senior);
+
+        mockMvc.perform(get("/api/v1/profiles").header(HttpHeaders.AUTHORIZATION, bearer(accountId)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[0].linkedProfiles[0].name").value("김순자"))
+                .andExpect(jsonPath("$.data[1].linkedProfiles.length()").value(0))
+                .andExpect(jsonPath("$.data[2].linkedProfiles[0].name").value("홍길동"));
+
+        mockMvc.perform(get("/api/v1/profiles/{id}", seniorId).header(HttpHeaders.AUTHORIZATION, bearer(accountId)))
+                .andExpect(jsonPath("$.data.linkedProfiles[0].profileId").value(guardianId));
+        mockMvc.perform(get("/api/v1/profiles/{id}", subGuardianId).header(HttpHeaders.AUTHORIZATION, bearer(accountId)))
+                .andExpect(jsonPath("$.data.linkedProfiles.length()").value(0));
+    }
+
+    @Test
     void requiresAccessToken() throws Exception {
         mockMvc.perform(get("/api/v1/profiles"))
                 .andExpect(status().isUnauthorized())
@@ -368,14 +442,14 @@ class ProfileApiTests {
         return "Bearer " + jwtTokenService.issue(accountId).accessToken();
     }
 
-    private Map<String, String> profile(String name, String role) {
-        var request = new LinkedHashMap<String, String>();
+    private Map<String, Object> profile(String name, String role) {
+        var request = new LinkedHashMap<String, Object>();
         request.put("name", name);
         request.put("role", role);
         return request;
     }
 
-    private long createAndGetId(long accountId, Map<String, String> request) throws Exception {
+    private long createAndGetId(long accountId, Map<String, Object> request) throws Exception {
         MvcResult result = create(accountId, request).andExpect(status().isCreated()).andReturn();
         return jsonMapper.readTree(result.getResponse().getContentAsString()).path("data").path("profileId").asLong();
     }
@@ -386,7 +460,7 @@ class ProfileApiTests {
                 .contentType(MediaType.APPLICATION_JSON).content(body));
     }
 
-    private ResultActions create(long accountId, Map<String, String> request) throws Exception {
+    private ResultActions create(long accountId, Map<String, Object> request) throws Exception {
         return mockMvc.perform(post("/api/v1/profiles").header(HttpHeaders.AUTHORIZATION, bearer(accountId))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(jsonMapper.writeValueAsString(request)));
