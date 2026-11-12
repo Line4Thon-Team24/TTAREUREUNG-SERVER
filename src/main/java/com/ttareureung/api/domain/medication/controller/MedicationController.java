@@ -7,8 +7,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/medications")
@@ -37,6 +39,12 @@ public class MedicationController {
         return medicationService.register(request);
     }
 
+    @PostMapping("/bulk")
+    @ResponseStatus(HttpStatus.CREATED)
+    public MedicationBulkCreateResponse registerBulk(@RequestBody @Valid MedicationBulkCreateRequest request) {
+        return medicationService.registerBulk(request);
+    }
+
     @GetMapping
     public MedicationListResponse getMedications(@RequestParam("senior_id") Long seniorId) {
         return medicationService.getMedications(seniorId);
@@ -51,6 +59,14 @@ public class MedicationController {
     @DeleteMapping("/{medicationId}")
     public MessageResponse delete(@PathVariable Long medicationId) {
         return medicationService.deleteMedication(medicationId);
+    }
+
+    @DeleteMapping
+    public MedicationBulkDeleteResponse deleteBulk(@RequestParam("medication_ids") List<Long> medicationIds) {
+        if (medicationIds.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "삭제할 약을 선택해주세요.");
+        }
+        return medicationService.deleteMedications(medicationIds);
     }
     
 }

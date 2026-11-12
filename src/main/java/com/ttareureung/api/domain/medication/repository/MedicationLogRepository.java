@@ -2,10 +2,12 @@ package com.ttareureung.api.domain.medication.repository;
 
 import com.ttareureung.api.domain.medication.entity.MedicationLog;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 
 public interface MedicationLogRepository extends JpaRepository<MedicationLog, Long> {
@@ -18,4 +20,8 @@ public interface MedicationLogRepository extends JpaRepository<MedicationLog, Lo
             """)
     List<MedicationLog> findDailyLogs(@Param("seniorId") Long seniorId,
                                       @Param("date") LocalDate date);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("delete from MedicationLog l where l.medication.id in :ids")
+    void deleteByMedicationIds(@Param("ids") Collection<Long> ids);
 }
