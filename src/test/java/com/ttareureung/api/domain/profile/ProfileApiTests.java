@@ -25,8 +25,14 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -360,6 +366,114 @@ class ProfileApiTests {
     }
 
     @Test
+    void deletingSeniorAlsoRemovesItsLinks() throws Exception {
+        long accountId = newAccount();
+        long guardianId = createAndGetId(accountId, profile("홍길동", "GUARDIAN"));
+        long seniorId = createLinkedSenior(accountId, "김순자", guardianId);
+
+        deleteProfile(bearer(accountId), seniorId)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
+
+        assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM profiles WHERE id = ?", Long.class, seniorId)).isZero();
+        assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM guardian_seniors WHERE senior_profile_id = ?", Long.class, seniorId)).isZero();
+        mockMvc.perform(get("/api/v1/profiles/{id}", guardianId).header(HttpHeaders.AUTHORIZATION, bearer(accountId)))
+                .andExpect(jsonPath("$.data.linkedProfiles.length()").value(0));
+    }
+
+    @Test
+    void deletingOneOfSeveralGuardiansKeepsOtherLinks() throws Exception {
+        long accountId = newAccount();
+        long guardian1 = createAndGetId(accountId, profile("홍길동", "GUARDIAN"));
+        long guardian2 = createAndGetId(accountId, profile("아무개", "GUARDIAN"));
+        long seniorId = createLinkedSenior(accountId, "김순자", guardian1);
+        mockMvc.perform(post("/api/v1/guardian-seniors").header(HttpHeaders.AUTHORIZATION, bearer(accountId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonMapper.writeValueAsString(Map.of("guardianProfileId", guardian2, "seniorProfileId", seniorId))))
+                .andExpect(status().isCreated());
+
+        deleteProfile(bearer(accountId), guardian1).andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/v1/profiles/{id}", seniorId).header(HttpHeaders.AUTHORIZATION, bearer(accountId)))
+                .andExpect(jsonPath("$.data.linkedProfiles.length()").value(1))
+                .andExpect(jsonPath("$.data.linkedProfiles[0].profileId").value(guardian2));
+    }
+
+    @Test
+    void lastGuardianCannotBeDeletedWhileSeniorExists() throws Exception {
+        long accountId = newAccount();
+        long guardianId = createAndGetId(accountId, profile("홍길동", "GUARDIAN"));
+        long seniorId = createLinkedSenior(accountId, "김순자", guardianId);
+
+        deleteProfile(bearer(accountId), guardianId)
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("PROFILE_006"));
+        assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM profiles WHERE id = ?", Long.class, guardianId)).isEqualTo(1);
+
+        // 시니어를 먼저 지우면 마지막 보호자도 삭제 가능
+        deleteProfile(bearer(accountId), seniorId).andExpect(status().isOk());
+        deleteProfile(bearer(accountId), guardianId).andExpect(status().isOk());
+        mockMvc.perform(get("/api/v1/profiles").header(HttpHeaders.AUTHORIZATION, bearer(accountId)))
+                .andExpect(jsonPath("$.data.length()").value(0));
+    }
+
+    @Test
+    void concurrentGuardianDeletesLeaveOneGuardian() throws Exception {
+        long accountId = newAccount();
+        long guardian1 = createAndGetId(accountId, profile("홍길동", "GUARDIAN"));
+        long guardian2 = createAndGetId(accountId, profile("아무개", "GUARDIAN"));
+        createLinkedSenior(accountId, "김순자", guardian1);
+        String token = bearer(accountId);
+
+        CountDownLatch start = new CountDownLatch(1);
+        try (ExecutorService pool = Executors.newFixedThreadPool(2)) {
+            Callable<Integer> first = () -> {
+                start.await();
+                return deleteProfile(token, guardian1).andReturn().getResponse().getStatus();
+            };
+            Callable<Integer> second = () -> {
+                start.await();
+                return deleteProfile(token, guardian2).andReturn().getResponse().getStatus();
+            };
+            Future<Integer> a = pool.submit(first);
+            Future<Integer> b = pool.submit(second);
+            start.countDown();
+            assertThat(List.of(a.get(), b.get())).containsExactlyInAnyOrder(200, 409);
+        }
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM profiles WHERE account_id = ? AND role = 'GUARDIAN'", Long.class, accountId)).isEqualTo(1);
+    }
+
+    @Test
+    void cannotDeleteOtherAccountsOrMissingProfile() throws Exception {
+        long owner = newAccount();
+        long profileId = createAndGetId(owner, profile("보호자", "GUARDIAN"));
+
+        deleteProfile(bearer(newAccount()), profileId)
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("PROFILE_002"));
+        deleteProfile(bearer(owner), Long.MAX_VALUE)
+                .andExpect(status().isNotFound());
+        mockMvc.perform(delete("/api/v1/profiles/abc").header(HttpHeaders.AUTHORIZATION, bearer(owner)))
+                .andExpect(status().isBadRequest());
+        mockMvc.perform(delete("/api/v1/profiles/{id}", profileId))
+                .andExpect(status().isUnauthorized());
+        assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM profiles WHERE id = ?", Long.class, profileId)).isEqualTo(1);
+    }
+
+    @Test
+    void inactiveAccountCannotDeleteProfile() throws Exception {
+        long accountId = newAccount();
+        String token = bearer(accountId);
+        long profileId = createAndGetId(accountId, profile("보호자", "GUARDIAN"));
+        jdbcTemplate.update("UPDATE accounts SET status = 'INACTIVE' WHERE id = ?", accountId);
+
+        deleteProfile(token, profileId)
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("AUTH_005"));
+    }
+
+    @Test
     void requiresAccessToken() throws Exception {
         mockMvc.perform(get("/api/v1/profiles"))
                 .andExpect(status().isUnauthorized())
@@ -458,6 +572,16 @@ class ProfileApiTests {
         return mockMvc.perform(patch("/api/v1/profiles/{id}", profileId)
                 .header(HttpHeaders.AUTHORIZATION, token)
                 .contentType(MediaType.APPLICATION_JSON).content(body));
+    }
+
+    private long createLinkedSenior(long accountId, String name, long guardianId) throws Exception {
+        var request = profile(name, "SENIOR");
+        request.put("guardianProfileId", guardianId);
+        return createAndGetId(accountId, request);
+    }
+
+    private ResultActions deleteProfile(String token, long profileId) throws Exception {
+        return mockMvc.perform(delete("/api/v1/profiles/{id}", profileId).header(HttpHeaders.AUTHORIZATION, token));
     }
 
     private ResultActions create(long accountId, Map<String, Object> request) throws Exception {
