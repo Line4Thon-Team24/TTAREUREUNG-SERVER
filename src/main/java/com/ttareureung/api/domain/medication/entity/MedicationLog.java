@@ -36,6 +36,15 @@ public class MedicationLog {
     @Column(name = "taken_at")
     private LocalDateTime takenAt;
 
+    public static MedicationLog create(Medication medication, LocalDate targetDate, MealTimeSlot mealTimeSlot) {
+        MedicationLog log = new MedicationLog();
+        log.medication = medication;
+        log.targetDate = targetDate;
+        log.mealTimeSlot = mealTimeSlot;
+        log.status = MedicationStatus.PENDING;
+        return log;
+    }
+
     public void changeStatus(MedicationStatus newStatus) {
         this.status = newStatus;
         this.takenAt = (newStatus == MedicationStatus.TAKEN) ? LocalDateTime.now() : null;

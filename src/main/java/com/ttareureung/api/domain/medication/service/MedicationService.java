@@ -7,21 +7,20 @@ import com.ttareureung.api.domain.medication.entity.MealTimeSlot;
 import com.ttareureung.api.domain.medication.entity.Medication;
 import com.ttareureung.api.domain.medication.entity.MedicationLog;
 import com.ttareureung.api.domain.medication.entity.MedicationStatus;
+import com.ttareureung.api.domain.medication.exception.MedicationErrorCode;
 import com.ttareureung.api.domain.medication.repository.MedicationLogRepository;
 import com.ttareureung.api.domain.medication.repository.MedicationRepository;
+import com.ttareureung.api.domain.profile.entity.Profile;
 import com.ttareureung.api.domain.profile.entity.ProfileRole;
 import com.ttareureung.api.domain.profile.repository.ProfileRepository;
+import com.ttareureung.api.global.exception.CustomException;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.annotation.Profile;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -55,7 +54,7 @@ public class MedicationService {
     @Transactional
     public UpdateLogStatusResponse updateLogStatus(Long logId, MedicationStatus status) {
         MedicationLog log = medicationLogRepository.findById(logId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "복용 기록을 찾을 수 없습니다."));
+                .orElseThrow(() -> new CustomException(MedicationErrorCode.MEDICATION_LOG_NOT_FOUND));
 
         log.changeStatus(status);
         return new UpdateLogStatusResponse(log.getId(), log.getStatus(), "복용 상태가 변경되었습니다.");
@@ -81,7 +80,7 @@ public class MedicationService {
     public MedicationBulkDeleteResponse deleteMedications(List<Long> medicationIds) {
         List<Long> ids = medicationIds.stream().distinct().toList();
         if (medicationRepository.findAllById(ids).size() != ids.size()) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "존재하지 않는 약 일정이 포함되어 있습니다.");
+            throw new CustomException(MedicationErrorCode.MEDICATION_NOT_FOUND);
         }
         medicationLogRepository.deleteByMedicationIds(ids); // FK 때문에 로그 먼저
         medicationRepository.deleteAllByIdInBatch(ids);
@@ -106,27 +105,27 @@ public class MedicationService {
     }
 
     @Transactional
-    public MessageResponse deleteMedication(Long medicationId) {
+    public void deleteMedication(Long medicationId) {
         Medication m = findMedication(medicationId);
-        medicationLogRepository.deleteByMedicationId(medicationId);
+        medicationLogRepository.deleteByMedicationIds(medicationId);
         medicationRepository.delete(m);
-        return new MessageResponse("약 복용 일정이 삭제되었습니다.");
+        // return 없음 (void)
     }
 
     private void validateSenior(Long seniorProfileId) {
         Profile senior = profileRepository.findById(seniorProfileId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "시니어를 찾을 수 없습니다."));
+                .orElseThrow(() -> new CustomException(MedicationErrorCode.SENIOR_NOT_FOUND));
         if (senior.getRole() != ProfileRole.SENIOR) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "시니어 프로필에만 약을 등록할 수 있습니다.");
+            throw new CustomException(MedicationErrorCode.NOT_SENIOR_PROFILE);
         }
     }
 
     private Long createOne(Long seniorProfileId, MedicationItemRequest item) {
         if (item.endDate().isBefore(item.startDate())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "종료일은 시작일 이후여야 합니다.");
+            throw new CustomException(MedicationErrorCode.INVALID_DATE_RANGE);
         }
         if (ChronoUnit.DAYS.between(item.startDate(), item.endDate()) > MAX_PERIOD_DAYS) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "복용 기간은 최대 1년까지 등록할 수 있습니다.");
+            throw new CustomException(MedicationErrorCode.PERIOD_TOO_LONG);
         }
 
         Medication medication = medicationRepository.save(Medication.builder()
@@ -155,7 +154,7 @@ public class MedicationService {
 
     private Medication findMedication(Long id) {
         return medicationRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "약 일정을 찾을 수 없습니다."));
+                .orElseThrow(() -> new CustomException(MedicationErrorCode.MEDICATION_NOT_FOUND));
     }
 
     private TimeSlot toTimeSlot(MealTimeSlot slot, List<MedicationLog> logs) {
