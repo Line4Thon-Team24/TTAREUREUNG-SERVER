@@ -36,7 +36,8 @@ public class ProfileService {
     }
 
     public ProfileResponse create(Long accountId, ProfileCreateRequest request) {
-        Account account = accessChecker.activeAccount(accountId);
+        // 마지막 보호자 삭제와 동시에 실행되면 보호자 없는 시니어가 생길 수 있어 계정 잠금
+        Account account = accessChecker.lockedActiveAccount(accountId);
         // 가입 흐름이 보호자 → 시니어 순서라 보호자 없는 시니어 생성 차단
         if (request.role() == ProfileRole.SENIOR && !profiles.existsByAccountIdAndRole(accountId, ProfileRole.GUARDIAN)) {
             throw new CustomException(ProfileErrorCode.GUARDIAN_REQUIRED);
@@ -79,6 +80,20 @@ public class ProfileService {
                 clearIfEmpty(request.phoneNumber(), profile.getPhoneNumber()),
                 clearIfEmpty(request.relationship(), profile.getRelationship()));
         return withLinks(profile);
+    }
+
+    // 연결은 함께 삭제. 복약 데이터 처리는 medications 테이블 생성 후 팀원과 정한 기준으로 추가
+    public void delete(Long accountId, Long profileId) {
+        // 보호자 두 명 동시 삭제 시 둘 다 "보호자 2명"으로 확인하고 지우는 경쟁 방지
+        accessChecker.lockedActiveAccount(accountId);
+        Profile profile = accessChecker.ownedProfile(accountId, profileId);
+        if (profile.getRole() == ProfileRole.GUARDIAN
+                && profiles.countByAccountIdAndRole(accountId, ProfileRole.GUARDIAN) == 1
+                && profiles.existsByAccountIdAndRole(accountId, ProfileRole.SENIOR)) {
+            throw new CustomException(ProfileErrorCode.LAST_GUARDIAN);
+        }
+        links.deleteAllByProfileId(profileId);
+        profiles.delete(profile);
     }
 
     // 보호자 프로필 생성에 guardianProfileId를 넣는 경우도 잘못된 요청으로 처리

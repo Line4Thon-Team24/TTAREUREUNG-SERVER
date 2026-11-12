@@ -16,7 +16,9 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -52,6 +54,18 @@ public class GuardianSeniorController {
                                                                      @Valid @RequestBody GuardianSeniorCreateRequest request) {
         GuardianSeniorResponse response = guardianSeniorService.link(accountId(jwt), request);
         return ResponseEntity.status(HttpStatus.CREATED).body(BaseResponse.success(response));
+    }
+
+    @Operation(summary = "연결 해제", description = "보호자-시니어 연결을 삭제합니다. 프로필은 그대로 남습니다.")
+    @ApiResponse(responseCode = "200", description = "해제 성공")
+    @ApiResponse(responseCode = "400", description = "linkId 형식 오류", content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+    @ApiResponse(responseCode = "401", description = "Access Token 누락·만료", content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+    @ApiResponse(responseCode = "403", description = "비활성 계정 (AUTH_005)", content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+    @ApiResponse(responseCode = "404", description = "없는 연결 또는 다른 계정의 연결 (PROFILE_005)", content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+    @DeleteMapping("/{linkId}")
+    public ResponseEntity<BaseResponse<Void>> unlink(@AuthenticationPrincipal Jwt jwt, @PathVariable Long linkId) {
+        guardianSeniorService.unlink(accountId(jwt), linkId);
+        return ResponseEntity.ok(BaseResponse.successWithoutData());
     }
 
     @Operation(summary = "연결 목록 조회", description = "profileId를 넣으면 그 프로필의 연결만, 없으면 계정 전체 연결을 반환합니다. 보호자 화면의 담당 시니어 목록에 사용합니다.")
