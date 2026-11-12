@@ -41,11 +41,12 @@ public class ProfileController {
         this.profileService = profileService;
     }
 
-    @Operation(summary = "프로필 생성", description = "로그인한 계정에 보호자 또는 시니어 프로필을 추가합니다. 회원가입 후 첫 보호자 등록과 시니어 등록 모두 이 API를 사용하며, 시니어는 보호자 프로필이 있어야 만들 수 있습니다.")
+    @Operation(summary = "프로필 생성", description = "로그인한 계정에 보호자 또는 시니어 프로필을 추가합니다. 회원가입 후 첫 보호자 등록과 시니어 등록 모두 이 API를 사용하며, 시니어는 보호자 프로필이 있어야 만들 수 있습니다. 시니어 생성 시 guardianProfileId를 넣으면 그 보호자와 바로 연결됩니다.")
     @ApiResponse(responseCode = "201", description = "생성 성공")
-    @ApiResponse(responseCode = "400", description = "입력값 오류", content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+    @ApiResponse(responseCode = "400", description = "입력값 오류 또는 guardianProfileId 역할 불일치 (PROFILE_003)", content = @Content(schema = @Schema(implementation = BaseResponse.class)))
     @ApiResponse(responseCode = "401", description = "Access Token 누락·만료", content = @Content(schema = @Schema(implementation = BaseResponse.class)))
     @ApiResponse(responseCode = "403", description = "비활성 계정 (AUTH_005)", content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+    @ApiResponse(responseCode = "404", description = "guardianProfileId가 없는 프로필 또는 다른 계정의 프로필 (PROFILE_002)", content = @Content(schema = @Schema(implementation = BaseResponse.class)))
     @ApiResponse(responseCode = "409", description = "보호자 프로필 없이 시니어 생성 (PROFILE_001)", content = @Content(schema = @Schema(implementation = BaseResponse.class)))
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<BaseResponse<ProfileResponse>> create(@AuthenticationPrincipal Jwt jwt,
