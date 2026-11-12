@@ -30,6 +30,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -205,6 +206,59 @@ class GuardianSeniorApiTests {
                 .andExpect(jsonPath("$.data.length()").value(0));
     }
 
+    @Test
+    void unlinkRemovesOnlyTheLink() throws Exception {
+        long accountId = newAccount();
+        long guardianId = createProfile(accountId, "보호자", "GUARDIAN", null);
+        long seniorId = createProfile(accountId, "시니어", "SENIOR", null);
+        long linkId = linkId(link(accountId, guardianId, seniorId));
+
+        unlink(bearer(accountId), linkId)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
+
+        assertThat(linkCount(accountId)).isZero();
+        assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM profiles WHERE account_id = ?", Long.class, accountId))
+                .isEqualTo(2);
+        // 해제 후 다시 연결 가능
+        link(accountId, guardianId, seniorId).andExpect(status().isCreated());
+    }
+
+    @Test
+    void cannotUnlinkOtherAccountsOrMissingLink() throws Exception {
+        long owner = newAccount();
+        long guardianId = createProfile(owner, "보호자", "GUARDIAN", null);
+        long seniorId = createProfile(owner, "시니어", "SENIOR", null);
+        long linkId = linkId(link(owner, guardianId, seniorId));
+
+        unlink(bearer(newAccount()), linkId)
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("PROFILE_005"));
+        unlink(bearer(owner), Long.MAX_VALUE)
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("PROFILE_005"));
+        mockMvc.perform(delete("/api/v1/guardian-seniors/abc").header(HttpHeaders.AUTHORIZATION, bearer(owner)))
+                .andExpect(status().isBadRequest());
+        mockMvc.perform(delete("/api/v1/guardian-seniors/{id}", linkId))
+                .andExpect(status().isUnauthorized());
+        assertThat(linkCount(owner)).isEqualTo(1);
+    }
+
+    @Test
+    void inactiveAccountCannotUnlink() throws Exception {
+        long accountId = newAccount();
+        long guardianId = createProfile(accountId, "보호자", "GUARDIAN", null);
+        long seniorId = createProfile(accountId, "시니어", "SENIOR", null);
+        long linkId = linkId(link(accountId, guardianId, seniorId));
+        String token = bearer(accountId);
+        jdbcTemplate.update("UPDATE accounts SET status = 'INACTIVE' WHERE id = ?", accountId);
+
+        unlink(token, linkId)
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("AUTH_005"));
+        assertThat(linkCount(accountId)).isEqualTo(1);
+    }
+
     @ParameterizedTest(name = "invalid link request {index}")
     @ValueSource(strings = {"{}", "{\"guardianProfileId\":1}", "{\"seniorProfileId\":1}", "{\"guardianProfileId\":\"abc\",\"seniorProfileId\":1}"})
     void rejectsInvalidLinkRequest(String body) throws Exception {
@@ -274,6 +328,15 @@ class GuardianSeniorApiTests {
             request.param("profileId", profileId.toString());
         }
         return mockMvc.perform(request);
+    }
+
+    private long linkId(ResultActions linked) throws Exception {
+        MvcResult result = linked.andExpect(status().isCreated()).andReturn();
+        return jsonMapper.readTree(result.getResponse().getContentAsString()).path("data").path("linkId").asLong();
+    }
+
+    private ResultActions unlink(String token, long linkId) throws Exception {
+        return mockMvc.perform(delete("/api/v1/guardian-seniors/{id}", linkId).header(HttpHeaders.AUTHORIZATION, token));
     }
 
     private String linkJson(long guardianId, long seniorId) {
