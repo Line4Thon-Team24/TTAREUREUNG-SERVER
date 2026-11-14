@@ -68,6 +68,10 @@ public abstract class ApiTestSupport {
                     DELETE gs FROM guardian_seniors gs
                     JOIN profiles p ON gs.guardian_profile_id = p.id OR gs.senior_profile_id = p.id
                     WHERE p.account_id = ?""", id);
+            jdbcTemplate.update("""
+                    DELETE ns FROM notification_setting ns
+                    JOIN profiles p ON ns.profile_id = p.id
+                    WHERE p.account_id = ?""", id);
             jdbcTemplate.update("DELETE FROM profiles WHERE account_id = ?", id);
             jdbcTemplate.update("DELETE FROM accounts WHERE id = ?", id);
         }
@@ -122,6 +126,7 @@ public abstract class ApiTestSupport {
         var item = new LinkedHashMap<String, Object>();
         item.put("drug_name", drugName);
         item.put("effect", "통증 완화");
+        item.put("storage_location", "약 상자 위에서 2번째 칸");
         item.put("start_date", start);
         item.put("end_date", end);
         item.put("cycle_type", "DAILY");

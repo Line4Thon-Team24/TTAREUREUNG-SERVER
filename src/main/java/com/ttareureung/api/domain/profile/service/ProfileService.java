@@ -1,5 +1,7 @@
 package com.ttareureung.api.domain.profile.service;
 
+import com.ttareureung.api.domain.medication.service.MedicationCleanupService;
+import com.ttareureung.api.domain.notification.service.NotificationSettingService;
 import com.ttareureung.api.domain.profile.dto.ProfileCreateRequest;
 import com.ttareureung.api.domain.profile.dto.ProfileResponse;
 import com.ttareureung.api.domain.profile.dto.ProfileSummary;
@@ -28,6 +30,8 @@ public class ProfileService {
     private final ProfileAccessChecker accessChecker;
     private final ProfileRepository profiles;
     private final GuardianSeniorRepository links;
+    private final NotificationSettingService notificationSettingService;
+    private final MedicationCleanupService medicationCleanupService;
 
     public ProfileService(ProfileAccessChecker accessChecker, ProfileRepository profiles, GuardianSeniorRepository links) {
         this.accessChecker = accessChecker;
@@ -103,6 +107,7 @@ public class ProfileService {
         } else {
             handOverPrimary(profile);                               // 대표 보호자 승계
         }
+        notificationSettingService.deleteByProfileId(profileId);
         links.deleteAllByProfileId(profileId);
         profiles.delete(profile);
     }

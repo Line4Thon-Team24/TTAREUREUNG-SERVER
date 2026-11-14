@@ -7,7 +7,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.Optional;
 
 public interface GuardianInvitationRepository extends JpaRepository<GuardianInvitation, Long> {
-    boolean existsBySeniorProfileIdAndPhoneNumberAndStatus(Long seniorProfileId, String phoneNumber,
-                                                           InvitationStatus status);
+    boolean existsBySeniorProfileIdAndPhoneNumberAndStatus(Long seniorProfileId, String phoneNumber, InvitationStatus status);
     Optional<GuardianInvitation> findByToken(String token);
 }

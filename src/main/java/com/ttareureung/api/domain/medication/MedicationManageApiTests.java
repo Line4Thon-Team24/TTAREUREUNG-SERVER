@@ -19,8 +19,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class MedicationManageApiTests extends ApiTestSupport {
 
     private static final String D1 = "2026-11-04";
-    private static final String OK_FIELDS = "\"senior_profile_id\":1,\"drug_name\":\"약\",\"start_date\":\"2026-11-04\","
-            + "\"end_date\":\"2026-11-05\",\"cycle_type\":\"DAILY\",\"frequency\":\"하루 1회\",\"notify_on_miss\":true";
+    private static final String OK_FIELDS = "\"senior_profile_id\":1,\"drug_name\":\"약\",\"storage_location\":\"약 상자\","
+            + "\"start_date\":\"2026-11-04\",\"end_date\":\"2026-11-05\",\"cycle_type\":\"DAILY\","
+            + "\"frequency\":\"하루 1회\",\"notify_on_miss\":true";
+    private static final String NO_STORAGE = "\"senior_profile_id\":1,\"drug_name\":\"약\",\"start_date\":\"2026-11-04\","
+            + "\"end_date\":\"2026-11-05\",\"cycle_type\":\"DAILY\",\"frequency\":\"하루 1회\","
+            + "\"notify_on_miss\":true,\"meal_time_slots\":[\"MORNING\"]";
 
     @Test
     void registersMedicationAndCreatesLogsPerDayAndSlot() throws Exception {
@@ -40,6 +44,9 @@ class MedicationManageApiTests extends ApiTestSupport {
         assertThat(row.get("custom_drug_name")).isEqualTo("허리 통증 줄여주는 약");
         assertThat(row.get("cycle_type")).isEqualTo("DAILY");
         assertThat(row.get("created_at")).isNotNull();
+        assertThat(row.get("storage_location")).isEqualTo("약 상자 위에서 2번째 칸");
+        assertThat(row.get("intake_reason")).isNull();
+
         assertThat(count("SELECT COUNT(*) FROM medication_logs WHERE medication_id = ?", medicationId)).isEqualTo(6);
         assertThat(count("SELECT COUNT(*) FROM medication_logs WHERE medication_id = ? AND status = 'PENDING' AND taken_at IS NULL",
                 medicationId)).isEqualTo(6);
@@ -93,7 +100,8 @@ class MedicationManageApiTests extends ApiTestSupport {
             "{\"senior_profile_id\":1}",
             "{" + OK_FIELDS + "}",
             "{" + OK_FIELDS + ",\"meal_time_slots\":[]}",
-            "{" + OK_FIELDS + ",\"meal_time_slots\":[\"BRUNCH\"]}"
+            "{" + OK_FIELDS + ",\"meal_time_slots\":[\"BRUNCH\"]}",
+            "{" + NO_STORAGE + "}"
     })
     void rejectsInvalidRegisterBody(String body) throws Exception {
         postJson(bearer(newAccount()), "/api/medications", body)
@@ -113,7 +121,11 @@ class MedicationManageApiTests extends ApiTestSupport {
         getAs(token, "/api/medications?senior_id=" + mine.seniorId())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.medications.length()").value(2))
-                .andExpect(jsonPath("$.data.medications[0].medication_id").isNumber());
+                .andExpect(jsonPath("$.data.medications[0].medication_id").isNumber())
+                .andExpect(jsonPath("$.data.medications[0].storage_location").value("약 상자 위에서 2번째 칸"))
+                .andExpect(jsonPath("$.data.medications[0].meal_time_slots.length()").value(1))
+                .andExpect(jsonPath("$.data.medications[0].created_at").isNotEmpty());
+
         getAs(token, "/api/medications?senior_id=" + other.seniorId())
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("PROFILE_002"));
@@ -126,18 +138,29 @@ class MedicationManageApiTests extends ApiTestSupport {
         String token = bearer(f.accountId());
         String url = "/api/medications/" + medicationId;
 
-        putJson(token, url, Map.of("custom_drug_name", "허리 아플 때 먹는 약", "frequency", "하루 2회, 식후 30분"))
+        putJson(token, url, Map.of("custom_drug_name", "허리 아플 때 먹는 약", "frequency", "하루 2회, 식후 30분",
+                "storage_location", "약 서랍 첫째 칸", "intake_reason", "무릎 관절 통증 완화"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.medication_id").value(medicationId));
+
         var row = jdbcTemplate.queryForMap("SELECT * FROM medications WHERE id = ?", medicationId);
         assertThat(row.get("custom_drug_name")).isEqualTo("허리 아플 때 먹는 약");
         assertThat(row.get("frequency")).isEqualTo("하루 2회, 식후 30분");
         assertThat(row.get("drug_name")).isEqualTo("아미노부프로펜");
         assertThat(row.get("effect")).isEqualTo("통증 완화");
+        assertThat(row.get("storage_location")).isEqualTo("약 서랍 첫째 칸");
+        assertThat(row.get("intake_reason")).isEqualTo("무릎 관절 통증 완화");
 
         putJson(token, url, "{}").andExpect(status().isOk());
         assertThat(jdbcTemplate.queryForObject("SELECT custom_drug_name FROM medications WHERE id = ?", String.class, medicationId))
                 .isEqualTo("허리 아플 때 먹는 약");
+
+        putJson(token, url, Map.of("intake_reason", "")).andExpect(status().isOk());
+        assertThat(jdbcTemplate.queryForObject("SELECT intake_reason FROM medications WHERE id = ?", String.class, medicationId)).isNull();
+
+        putJson(token, url, Map.of("storage_location", "   "))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("COMMON_400"));
 
         putJson(token, url, Map.of("frequency", "가".repeat(101)))
                 .andExpect(status().isBadRequest())

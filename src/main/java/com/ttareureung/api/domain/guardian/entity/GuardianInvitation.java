@@ -27,7 +27,7 @@ public class GuardianInvitation extends BaseTimeEntity {
     private Long seniorProfileId;
 
     @Column(name = "phone_number", nullable = false, length = 20)
-    private String phoneNumber; // 숫자만
+    private String phoneNumber;
 
     @Column(nullable = false, unique = true, length = 64)
     private String token;
