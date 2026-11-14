@@ -33,7 +33,7 @@ public interface GuardianSeniorRepository extends JpaRepository<GuardianSenior, 
     @Query("select gs from GuardianSenior gs where gs.id = :id and gs.guardian.account.id = :accountId")
     Optional<GuardianSenior> findByIdAndAccountId(Long id, Long accountId);
 
-    @Modifying
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("delete from GuardianSenior gs where gs.guardian.id = :profileId or gs.senior.id = :profileId")
     int deleteAllByProfileId(Long profileId);
 }

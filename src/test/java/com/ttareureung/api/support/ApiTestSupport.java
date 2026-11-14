@@ -1,13 +1,15 @@
 package com.ttareureung.api.support;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.json.JsonMapper;
-import com.ttareureung.api.domain.account.entity.Account;
-import com.ttareureung.api.domain.account.repository.AccountRepository;
+import com.ttareureung.api.domain.user.entity.Account;
+import com.ttareureung.api.domain.user.repository.AccountRepository;
 import com.ttareureung.api.global.security.JwtTokenService;
 import org.junit.jupiter.api.AfterEach;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.autoconfigure.web.servlet.MockMvcPrint;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.MockMvcPrint;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -155,8 +157,10 @@ public abstract class ApiTestSupport {
     }
 
     // HTTP / DB
-    private String toJson(Object body) {
-        return body instanceof String s ? s : jsonMapper.writeValueAsString(body);
+    private String toJson(Object body) throws JsonProcessingException {
+        return body instanceof String s
+                ? s
+                : jsonMapper.writeValueAsString(body);
     }
 
     protected ResultActions postJson(String token, String url, Object body) throws Exception {

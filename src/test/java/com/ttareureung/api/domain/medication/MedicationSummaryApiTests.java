@@ -2,7 +2,6 @@ package com.ttareureung.api.domain.medication;
 
 import com.ttareureung.api.support.ApiTestSupport;
 import org.junit.jupiter.api.Test;
-import org.springframework.test.web.servlet.MvcResult;
 
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -37,7 +36,7 @@ class MedicationSummaryApiTests extends ApiTestSupport {
                 .andExpect(jsonPath("$.data.completed_days").value(1))
                 .andExpect(jsonPath("$.data.partial_days").value(1))
                 .andExpect(jsonPath("$.data.missed_days").value(1))
-                .andExpect(jsonPath("$.data.rate").value(7)) 
+                .andExpect(jsonPath("$.data.rate").value(7))
                 .andExpect(jsonPath("$.data.completed_rate").value(3))
                 .andExpect(jsonPath("$.data.partial_rate").value(3))
                 .andExpect(jsonPath("$.data.missed_rate").value(3))

@@ -1,6 +1,7 @@
 package com.ttareureung.api.domain.medication.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 public record MedicationUpdateRequest(
@@ -12,5 +13,5 @@ public record MedicationUpdateRequest(
         @JsonProperty("storage_location") @Pattern(regexp = ".*\\S.*") @Size(max = 100) String storageLocation,
         @JsonProperty("intake_reason") @Size(max = 1000) String intakeReason
 ) {
-    
+
 }

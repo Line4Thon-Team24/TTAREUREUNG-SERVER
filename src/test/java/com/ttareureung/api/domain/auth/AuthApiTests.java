@@ -216,6 +216,15 @@ class AuthApiTests {
         long id = signup(newEmail());
         String token = signedToken(id, "refresh", Instant.now().minusSeconds(7200), Instant.now().minusSeconds(3600));
         storeRefresh(id, token, Instant.now().minusSeconds(3600));
+        System.out.println("DB expiry: " +
+                jdbcTemplate.queryForObject(
+                        "SELECT expires_at FROM refresh_tokens WHERE token_hash = ?",
+                        LocalDateTime.class,
+                        hash(token)
+                ));
+
+        System.out.println("UTC now: " +
+                LocalDateTime.now(ZoneOffset.UTC));
         tokenRequest("refresh", new Cookie(COOKIE_NAME, token))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("AUTH_003"));
@@ -224,9 +233,41 @@ class AuthApiTests {
     @Test
     void rejectsRefreshTokenWhoseDatabaseExpiryHasPassed() throws Exception {
         long id = signup(newEmail());
-        String token = signedToken(id, "refresh", Instant.now(), Instant.now().plusSeconds(3600));
-        storeRefresh(id, token, Instant.now().minusSeconds(3600));
-        tokenRequest("refresh", new Cookie(COOKIE_NAME, token)).andExpect(status().isUnauthorized());
+
+        String token = signedToken(
+                id,
+                "refresh",
+                Instant.now(),
+                Instant.now().plusSeconds(3600)
+        );
+
+        // Insert a valid refresh token first.
+        storeRefresh(id, token, Instant.now().plusSeconds(3600));
+
+        // Make its database expiry one hour in the past.
+        int updatedRows = jdbcTemplate.update(
+                """
+                UPDATE refresh_tokens
+                SET expires_at = UTC_TIMESTAMP(6) - INTERVAL 1 HOUR
+                WHERE token_hash = ?
+                """,
+                hash(token)
+        );
+
+        assertThat(updatedRows).isEqualTo(1);
+
+        System.out.println("UPDATED ROWS: " + updatedRows);
+
+        System.out.println("DB EXPIRY: " +
+                jdbcTemplate.queryForObject(
+                        "SELECT DATE_FORMAT(expires_at, '%Y-%m-%d %H:%i:%s') FROM refresh_tokens WHERE token_hash = ?",
+                        String.class,
+                        hash(token)
+                ));
+
+        tokenRequest("refresh", new Cookie(COOKIE_NAME, token))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("AUTH_003"));
     }
 
     @Test
@@ -479,9 +520,17 @@ class AuthApiTests {
     }
 
     private void storeRefresh(long accountId, String token, Instant expiresAt) throws Exception {
-        jdbcTemplate.update("INSERT INTO refresh_tokens (account_id, token_hash, expires_at, created_at) VALUES (?, ?, ?, ?)",
-                accountId, hash(token), LocalDateTime.ofInstant(expiresAt, ZoneOffset.UTC),
-                LocalDateTime.ofInstant(Instant.now(), ZoneOffset.UTC));
+        jdbcTemplate.update(
+                """
+                INSERT INTO refresh_tokens
+                (account_id, token_hash, expires_at, created_at)
+                VALUES (?, ?, ?, ?)
+                """,
+                accountId,
+                hash(token),
+                LocalDateTime.ofInstant(expiresAt, ZoneOffset.UTC),
+                LocalDateTime.ofInstant(Instant.now(), ZoneOffset.UTC)
+        );
     }
 
     private String signedToken(long accountId, String type, Instant issuedAt, Instant expiresAt) {

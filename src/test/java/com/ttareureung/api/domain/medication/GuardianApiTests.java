@@ -1,4 +1,4 @@
-package com.ttareureung.api.domain.guardian;
+package com.ttareureung.api.domain.medication;
 
 import com.ttareureung.api.support.ApiTestSupport;
 import org.junit.jupiter.api.Test;

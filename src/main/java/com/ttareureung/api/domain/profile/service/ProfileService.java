@@ -33,10 +33,16 @@ public class ProfileService {
     private final NotificationSettingService notificationSettingService;
     private final MedicationCleanupService medicationCleanupService;
 
-    public ProfileService(ProfileAccessChecker accessChecker, ProfileRepository profiles, GuardianSeniorRepository links) {
+    public ProfileService(ProfileAccessChecker accessChecker,
+                          ProfileRepository profiles,
+                          GuardianSeniorRepository links,
+                          NotificationSettingService notificationSettingService,
+                          MedicationCleanupService medicationCleanupService) {
         this.accessChecker = accessChecker;
         this.profiles = profiles;
         this.links = links;
+        this.notificationSettingService = notificationSettingService;
+        this.medicationCleanupService = medicationCleanupService;
     }
 
     public ProfileResponse create(Long accountId, ProfileCreateRequest request) {

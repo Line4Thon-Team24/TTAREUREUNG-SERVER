@@ -2,11 +2,12 @@ package com.ttareureung.api.domain.guardian.service;
 
 import com.ttareureung.api.domain.guardian.dto.PrimaryGuardianRequest;
 import com.ttareureung.api.domain.guardian.exception.GuardianErrorCode;
-import com.ttareureung.api.domain.guardian.repository.GuardianSeniorRepository;
+import com.ttareureung.api.domain.profile.repository.GuardianSeniorRepository;
 import com.ttareureung.api.domain.profile.entity.GuardianSenior;
 import com.ttareureung.api.domain.profile.entity.GuardianSeniorStatus;
+import com.ttareureung.api.domain.profile.repository.GuardianSeniorRepository;
 import com.ttareureung.api.global.exception.CustomException;
-import com.ttareureung.api.global.security.AccessChecker;
+import com.ttareureung.api.domain.profile.service.ProfileAccessChecker;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,7 +18,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class GuardianService {
 
-    private final AccessChecker accessChecker;
+    private final ProfileAccessChecker accessChecker;
     private final SeniorAccessValidator seniorAccessValidator;
     private final GuardianSeniorRepository links;
 

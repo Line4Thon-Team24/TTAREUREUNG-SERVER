@@ -4,7 +4,6 @@ import com.ttareureung.api.support.ApiTestSupport;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
-import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -49,13 +48,15 @@ class GuardianApiTests extends ApiTestSupport {
         Family f = newFamily();
 
         deleteAs(bearer(f.accountId()), "/api/v1/profiles/" + f.guardianId())
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("PROFILE_005"));
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("PROFILE_006"));
     }
 
     private List<Long> primaryGuardianIds(long seniorId) {
         return jdbcTemplate.queryForList(
                 "SELECT guardian_profile_id FROM guardian_seniors WHERE senior_profile_id = ? AND is_primary = true",
-                Long.class);
+                Long.class,
+                seniorId
+        );
     }
 }

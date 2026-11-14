@@ -1,14 +1,14 @@
 package com.ttareureung.api.domain.medication.service;
 
-import com.fasterxml.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.json.JsonMapper;
 import com.ttareureung.api.domain.medication.client.AiFileClient;
 import com.ttareureung.api.domain.medication.dto.RecognitionResponse;
+import com.ttareureung.api.domain.medication.exception.MedicationErrorCode;
+import com.ttareureung.api.global.exception.CustomException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Set;
 
@@ -37,32 +37,40 @@ public class MedicationRecognitionService {
 
     public RecognitionResponse recognize(MultipartFile file) {
         String mediaType = file.getContentType();
+
         if (file.isEmpty() || mediaType == null || !ALLOWED_TYPES.contains(mediaType)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "JPG, PNG, WEBP, PDF 파일만 올릴 수 있습니다.");
+            throw new CustomException(MedicationErrorCode.UNSUPPORTED_FILE_TYPE);
         }
 
         String raw;
         try {
-            raw = aiFileClient.askWithFile(SYSTEM_PROMPT, mediaType, file.getBytes(),
-                    "이 파일에서 복약 정보를 추출해줘.");
+            raw = aiFileClient.askWithFile(
+                    SYSTEM_PROMPT,
+                    mediaType,
+                    file.getBytes(),
+                    "이 파일에서 복약 정보를 추출해줘."
+            );
         } catch (Exception e) {
             log.error("AI 인식 호출 실패", e);
-            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "AI 인식에 실패했습니다. 잠시 후 다시 시도해주세요.");
+            throw new CustomException(MedicationErrorCode.AI_RECOGNITION_FAILED);
         }
 
         RecognitionResponse result;
         try {
-            // ```json 펜스 제거
-            String json = raw.strip().replaceAll("^```(?:json)?\\s*", "").replaceAll("\\s*```$", "");
+            String json = raw.strip()
+                    .replaceAll("^```(?:json)?\\s*", "")
+                    .replaceAll("\\s*```$", "");
+
             result = jsonMapper.readValue(json, RecognitionResponse.class);
         } catch (Exception e) {
             log.error("AI 응답 파싱 실패: {}", raw, e);
-            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "AI 응답을 해석하지 못했습니다.");
+            throw new CustomException(MedicationErrorCode.AI_RESPONSE_INVALID);
         }
 
-        if (result.medications() == null || result.medications().isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "약 정보를 찾지 못했습니다. 직접 입력해주세요.");
+        if (result == null || result.medications() == null || result.medications().isEmpty()) {
+            throw new CustomException(MedicationErrorCode.NO_MEDICATION_RECOGNIZED);
         }
+
         return result;
     }
 }

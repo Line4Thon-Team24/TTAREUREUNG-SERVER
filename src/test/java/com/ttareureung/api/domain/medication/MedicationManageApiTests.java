@@ -39,7 +39,7 @@ class MedicationManageApiTests extends ApiTestSupport {
                 .andReturn();
         long medicationId = idOf(result, "medication_id");
 
-        var row = jdbcTemplate.queryForMap("SELECT * FROM medications WHERE id = ?", medicationId);
+        var row = jdbcTemplate.queryForMap("SELECT * FROM medication WHERE id = ?", medicationId);
         assertThat(((Number) row.get("senior_profile_id")).longValue()).isEqualTo(f.seniorId());
         assertThat(row.get("custom_drug_name")).isEqualTo("허리 통증 줄여주는 약");
         assertThat(row.get("cycle_type")).isEqualTo("DAILY");
@@ -60,7 +60,7 @@ class MedicationManageApiTests extends ApiTestSupport {
         registerAs(token, f.seniorId(), medicationItem("약", "2026-01-01", "2027-01-02", "MORNING"))
                 .andExpect(status().isCreated());
         assertThat(count("""
-                SELECT COUNT(*) FROM medication_logs ml JOIN medications m ON ml.medication_id = m.id
+                SELECT COUNT(*) FROM medication_logs ml JOIN medication m ON ml.medication_id = m.id
                 WHERE m.senior_profile_id = ?""", f.seniorId())).isEqualTo(367);
 
         registerAs(token, f.seniorId(), medicationItem("약", "2026-01-01", "2027-01-03", "MORNING"))
@@ -75,7 +75,7 @@ class MedicationManageApiTests extends ApiTestSupport {
         registerAs(bearer(f.accountId()), f.seniorId(), medicationItem("약", "2026-11-06", "2026-11-04", "MORNING"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("MEDICATION_004"));
-        assertThat(count("SELECT COUNT(*) FROM medications WHERE senior_profile_id = ?", f.seniorId())).isZero();
+        assertThat(count("SELECT COUNT(*) FROM medication WHERE senior_profile_id = ?", f.seniorId())).isZero();
     }
 
     @Test
@@ -90,7 +90,7 @@ class MedicationManageApiTests extends ApiTestSupport {
         registerAs(token, other.seniorId(), medicationItem("약", D1, D1, "MORNING"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("PROFILE_002"));
-        assertThat(count("SELECT COUNT(*) FROM medications WHERE senior_profile_id IN (?, ?, ?)",
+        assertThat(count("SELECT COUNT(*) FROM medication WHERE senior_profile_id IN (?, ?, ?)",
                 mine.guardianId(), mine.seniorId(), other.seniorId())).isZero();
     }
 
@@ -143,7 +143,7 @@ class MedicationManageApiTests extends ApiTestSupport {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.medication_id").value(medicationId));
 
-        var row = jdbcTemplate.queryForMap("SELECT * FROM medications WHERE id = ?", medicationId);
+        var row = jdbcTemplate.queryForMap("SELECT * FROM medication WHERE id = ?", medicationId);
         assertThat(row.get("custom_drug_name")).isEqualTo("허리 아플 때 먹는 약");
         assertThat(row.get("frequency")).isEqualTo("하루 2회, 식후 30분");
         assertThat(row.get("drug_name")).isEqualTo("아미노부프로펜");
@@ -152,11 +152,11 @@ class MedicationManageApiTests extends ApiTestSupport {
         assertThat(row.get("intake_reason")).isEqualTo("무릎 관절 통증 완화");
 
         putJson(token, url, "{}").andExpect(status().isOk());
-        assertThat(jdbcTemplate.queryForObject("SELECT custom_drug_name FROM medications WHERE id = ?", String.class, medicationId))
+        assertThat(jdbcTemplate.queryForObject("SELECT custom_drug_name FROM medication WHERE id = ?", String.class, medicationId))
                 .isEqualTo("허리 아플 때 먹는 약");
 
         putJson(token, url, Map.of("intake_reason", "")).andExpect(status().isOk());
-        assertThat(jdbcTemplate.queryForObject("SELECT intake_reason FROM medications WHERE id = ?", String.class, medicationId)).isNull();
+        assertThat(jdbcTemplate.queryForObject("SELECT intake_reason FROM medication WHERE id = ?", String.class, medicationId)).isNull();
 
         putJson(token, url, Map.of("storage_location", "   "))
                 .andExpect(status().isBadRequest())
@@ -179,7 +179,7 @@ class MedicationManageApiTests extends ApiTestSupport {
         deleteAs(stranger, "/api/medications/" + medicationId)
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("MEDICATION_001"));
-        assertThat(jdbcTemplate.queryForObject("SELECT frequency FROM medications WHERE id = ?", String.class, medicationId))
+        assertThat(jdbcTemplate.queryForObject("SELECT frequency FROM medication WHERE id = ?", String.class, medicationId))
                 .isEqualTo("하루 2회, 식후 30분");
     }
 
@@ -192,7 +192,7 @@ class MedicationManageApiTests extends ApiTestSupport {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true));
 
-        assertThat(count("SELECT COUNT(*) FROM medications WHERE id = ?", medicationId)).isZero();
+        assertThat(count("SELECT COUNT(*) FROM medication WHERE id = ?", medicationId)).isZero();
         assertThat(count("SELECT COUNT(*) FROM medication_logs WHERE medication_id = ?", medicationId)).isZero();
     }
 
@@ -209,9 +209,9 @@ class MedicationManageApiTests extends ApiTestSupport {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.data.medication_ids.length()").value(2));
 
-        assertThat(count("SELECT COUNT(*) FROM medications WHERE senior_profile_id = ?", f.seniorId())).isEqualTo(2);
+        assertThat(count("SELECT COUNT(*) FROM medication WHERE senior_profile_id = ?", f.seniorId())).isEqualTo(2);
         assertThat(count("""
-                SELECT COUNT(*) FROM medication_logs ml JOIN medications m ON ml.medication_id = m.id
+                SELECT COUNT(*) FROM medication_logs ml JOIN medication m ON ml.medication_id = m.id
                 WHERE m.senior_profile_id = ?""", f.seniorId())).isEqualTo(5);
     }
 
@@ -228,7 +228,7 @@ class MedicationManageApiTests extends ApiTestSupport {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("MEDICATION_004"));
 
-        assertThat(count("SELECT COUNT(*) FROM medications WHERE senior_profile_id = ?", f.seniorId())).isZero();
+        assertThat(count("SELECT COUNT(*) FROM medication WHERE senior_profile_id = ?", f.seniorId())).isZero();
     }
 
     @Test
@@ -245,7 +245,7 @@ class MedicationManageApiTests extends ApiTestSupport {
                         "medications", Collections.nCopies(21, medicationItem("약", D1, D1, "MORNING"))))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("COMMON_400"));
-        assertThat(count("SELECT COUNT(*) FROM medications WHERE senior_profile_id = ?", f.seniorId())).isZero();
+        assertThat(count("SELECT COUNT(*) FROM medication WHERE senior_profile_id = ?", f.seniorId())).isZero();
     }
 
     @Test
@@ -259,9 +259,9 @@ class MedicationManageApiTests extends ApiTestSupport {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.deleted_count").value(2));
 
-        assertThat(count("SELECT COUNT(*) FROM medications WHERE id IN (?, ?)", m1, m2)).isZero();
+        assertThat(count("SELECT COUNT(*) FROM medication WHERE id IN (?, ?)", m1, m2)).isZero();
         assertThat(count("SELECT COUNT(*) FROM medication_logs WHERE medication_id IN (?, ?)", m1, m2)).isZero();
-        assertThat(count("SELECT COUNT(*) FROM medications WHERE id = ?", m3)).isEqualTo(1);
+        assertThat(count("SELECT COUNT(*) FROM medication WHERE id = ?", m3)).isEqualTo(1);
     }
 
     @Test
@@ -274,7 +274,7 @@ class MedicationManageApiTests extends ApiTestSupport {
         deleteAs(bearer(mine.accountId()), "/api/medications?medication_ids=" + myMed + "," + otherMed)
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("MEDICATION_001"));
-        assertThat(count("SELECT COUNT(*) FROM medications WHERE id IN (?, ?)", myMed, otherMed)).isEqualTo(2);
+        assertThat(count("SELECT COUNT(*) FROM medication WHERE id IN (?, ?)", myMed, otherMed)).isEqualTo(2);
 
         deleteAs(bearer(mine.accountId()), "/api/medications").andExpect(status().isBadRequest());
     }
@@ -286,11 +286,11 @@ class MedicationManageApiTests extends ApiTestSupport {
         try {
             deleteAs(bearer(f.accountId()), "/api/v1/profiles/" + f.seniorId()).andExpect(status().isOk());
 
-            assertThat(count("SELECT COUNT(*) FROM medications WHERE id = ?", medicationId)).isZero();
+            assertThat(count("SELECT COUNT(*) FROM medication WHERE id = ?", medicationId)).isZero();
             assertThat(count("SELECT COUNT(*) FROM medication_logs WHERE medication_id = ?", medicationId)).isZero();
         } finally {
             jdbcTemplate.update("DELETE FROM medication_logs WHERE medication_id = ?", medicationId);
-            jdbcTemplate.update("DELETE FROM medications WHERE id = ?", medicationId);
+            jdbcTemplate.update("DELETE FROM medication WHERE id = ?", medicationId);
         }
     }
 
@@ -312,6 +312,6 @@ class MedicationManageApiTests extends ApiTestSupport {
         putJson(token, "/api/medications/" + medicationId, Map.of("frequency", "바뀜"))
                 .andExpect(status().isForbidden());
         deleteAs(token, "/api/medications/" + medicationId).andExpect(status().isForbidden());
-        assertThat(count("SELECT COUNT(*) FROM medications WHERE id = ?", medicationId)).isEqualTo(1);
+        assertThat(count("SELECT COUNT(*) FROM medication WHERE id = ?", medicationId)).isEqualTo(1);
     }
 }

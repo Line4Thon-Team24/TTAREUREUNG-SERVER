@@ -1,0 +1,97 @@
+Initialized native services in: C:\Users\user\.gradle\native
+Initialized jansi services in: C:\Users\user\.gradle\native
+The client will now receive all logging from the daemon (pid: 28708). The daemon log file: C:\Users\user\.gradle\daemon\9.8.2\daemon-28708.out.log
+Starting 152nd build in daemon [uptime: 4 hrs 41 mins 40.278 secs, performance: 100%, GC rate: 0.00/s, heap usage: 0% of 512 MiB, non-heap usage: 33% of 384 MiB]
+Using 16 worker leases.
+Operational build model parameters: {cachingModelBuilding=false, configurationCache=false, configurationCacheDisabledReason=null, configurationCacheParallelLoad=false, configurationCacheParallelStore=false, configureOnDemand=false, invalidateCoupledProjects=false, isolatedProjects=false, isolatedProjectsDiagnostics=false, isolatedProjectsDangerouslyIgnoreProblems=false, modelAsProjectDependency=false, modelBuilding=false, parallelModelBuilding=false, parallelProjectConfiguration=false, parallelProjectExecution=false, vintage=true}
+Now considering [C:\Users\user\Desktop\pbl\TTAREUREUNG-SERVER] as hierarchies to watch
+Watching the file system is configured to be enabled if available
+File system watching is active
+Starting Build
+Settings evaluated using settings file 'C:\Users\user\Desktop\pbl\TTAREUREUNG-SERVER\settings.gradle'.
+Projects loaded. Root project using build file 'C:\Users\user\Desktop\pbl\TTAREUREUNG-SERVER\build.gradle'.
+Included projects: [root project 'ttareureung-server']
+
+> Configure project :
+Evaluating root project 'ttareureung-server' using build file 'C:\Users\user\Desktop\pbl\TTAREUREUNG-SERVER\build.gradle'.
+Resolved plugin [id: 'java']
+Resolved plugin [id: 'org.springframework.boot', version: '4.1.2']
+Resolved plugin [id: 'io.spring.dependency-management', version: '1.1.6']
+Applying dependency management to configuration 'annotationProcessor' in project 'ttareureung-server'
+Applying dependency management to configuration 'apiElements' in project 'ttareureung-server'
+Applying dependency management to configuration 'archives' in project 'ttareureung-server'
+Applying dependency management to configuration 'bootArchives' in project 'ttareureung-server'
+Applying dependency management to configuration 'compileClasspath' in project 'ttareureung-server'
+Applying dependency management to configuration 'compileOnly' in project 'ttareureung-server'
+Applying dependency management to configuration 'default' in project 'ttareureung-server'
+Applying dependency management to configuration 'developmentOnly' in project 'ttareureung-server'
+Applying dependency management to configuration 'implementation' in project 'ttareureung-server'
+Applying dependency management to configuration 'mainSourceElements' in project 'ttareureung-server'
+Applying dependency management to configuration 'productionRuntimeClasspath' in project 'ttareureung-server'
+Applying dependency management to configuration 'runtimeClasspath' in project 'ttareureung-server'
+Applying dependency management to configuration 'runtimeElements' in project 'ttareureung-server'
+Applying dependency management to configuration 'runtimeOnly' in project 'ttareureung-server'
+Applying dependency management to configuration 'testAndDevelopmentOnly' in project 'ttareureung-server'
+Applying dependency management to configuration 'testAnnotationProcessor' in project 'ttareureung-server'
+Applying dependency management to configuration 'testCompileClasspath' in project 'ttareureung-server'
+Applying dependency management to configuration 'testCompileOnly' in project 'ttareureung-server'
+Applying dependency management to configuration 'testImplementation' in project 'ttareureung-server'
+Applying dependency management to configuration 'testResultsElementsForTest' in project 'ttareureung-server'
+Applying dependency management to configuration 'testRuntimeClasspath' in project 'ttareureung-server'
+Applying dependency management to configuration 'testRuntimeOnly' in project 'ttareureung-server'
+All projects evaluated.
+Task name matched 'test'
+Selected primary task 'test' from project :
+Resolving global dependency management for project 'ttareureung-server'
+Excluding [com.google.protobuf:protobuf-java]
+Excluding []
+Excluding []
+Excluding []
+Excluding []
+Excluding []
+Tasks to be executed: [task ':compileJava', task ':processResources', task ':classes', task ':compileTestJava', task ':processTestResources', task ':testClasses', task ':test']
+Tasks that were excluded: []
+Resolve mutations for :compileJava (Thread[#7634,Execution worker,5,main]) started.
+:compileJava (Thread[#7635,Execution worker Thread 2,5,main]) started.
+
+> Task :compileJava
+Custom actions are attached to task ':compileJava'.
+Caching disabled for task ':compileJava' because:
+  Build cache is disabled
+Task ':compileJava' is not up-to-date because:
+  Input property 'stableSources' file C:\Users\user\Desktop\pbl\TTAREUREUNG-SERVER\src\main\java\com\ttareureung\api\domain\auth\service\AuthService.java has changed.
+Compilation mode: in-process compilation
+Created classpath snapshot for incremental compilation in 0.088 secs.
+Compiling with toolchain 'C:\Program Files\Eclipse Adoptium\jdk-21.0.11.10-hotspot'.
+Compiling with JDK Java compiler API.
+C:\Users\user\Desktop\pbl\TTAREUREUNG-SERVER\src\main\java\com\ttareureung\api\domain\auth\service\AuthService.java:74: error: cannot find symbol
+        System.out.println("HIBERNATE DB EXPIRY: " + current.getExpiresAt());
+                                                     ^
+  symbol:   variable current
+  location: class AuthService
+1 error
+Incremental compilation of 2 classes completed in 3.444 secs.
+
+> Task :compileJava FAILED
+
+[Incubating] Problems report is available at: file:///C:/Users/user/Desktop/pbl/TTAREUREUNG-SERVER/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':compileJava' (registered by plugin class 'org.gradle.api.plugins.JavaBasePlugin').
+> Compilation failed; see the compiler output below.
+  C:\Users\user\Desktop\pbl\TTAREUREUNG-SERVER\src\main\java\com\ttareureung\api\domain\auth\service\AuthService.java:74: error: cannot find symbol
+          System.out.println("HIBERNATE DB EXPIRY: " + current.getExpiresAt());
+                                                       ^
+    symbol:   variable current
+    location: class AuthService
+  1 error
+
+* Try:
+> Check your code and dependencies to fix the compilation error(s)
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+
+BUILD FAILED in 6s
+1 actionable task: 1 executed
+Watched directory hierarchies: [C:\Users\user\Desktop\pbl\TTAREUREUNG-SERVER]

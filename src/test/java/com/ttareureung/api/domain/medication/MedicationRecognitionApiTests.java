@@ -1,6 +1,6 @@
 package com.ttareureung.api.domain.medication;
 
-import com.ttareureung.api.domain.ai.AnthropicClient;
+import com.ttareureung.api.domain.medication.client.AiFileClient;
 import com.ttareureung.api.support.ApiTestSupport;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;
@@ -26,7 +26,7 @@ class MedicationRecognitionApiTests extends ApiTestSupport {
 
     @Test
     void returnsRecognizedMedications() throws Exception {
-        when(anthropicClient.askWithFile(any(), any(), any(), any())).thenReturn(RESULT);
+        when(aiFileClient.askWithFile(any(), any(), any(), any())).thenReturn(RESULT);
 
         upload(bearer(newAccount()), "image/jpeg", new byte[]{1, 2, 3})
                 .andExpect(status().isOk())
@@ -35,12 +35,12 @@ class MedicationRecognitionApiTests extends ApiTestSupport {
                 .andExpect(jsonPath("$.data.medications[0].drug_name").value("아로르신정 25밀리그램"))
                 .andExpect(jsonPath("$.data.medications[0].meal_time_slots[1]").value("DINNER"))
                 .andExpect(jsonPath("$.data.medications[0].confidence").value(99));
-        verify(anthropicClient).askWithFile(any(), eq("image/jpeg"), any(), any());
+        verify(aiFileClient).askWithFile(any(), eq("image/jpeg"), any(), any());
     }
 
     @Test
     void stripsMarkdownFenceAroundJson() throws Exception {
-        when(anthropicClient.askWithFile(any(), any(), any(), any()))
+        when(aiFileClient.askWithFile(any(), any(), any(), any()))
                 .thenReturn("```json\n" + RESULT + "\n```");
 
         upload(bearer(newAccount()), "application/pdf", new byte[]{1})
@@ -50,7 +50,7 @@ class MedicationRecognitionApiTests extends ApiTestSupport {
 
     @Test
     void emptyResultReturnsUnprocessable() throws Exception {
-        when(anthropicClient.askWithFile(any(), any(), any(), any())).thenReturn("{\"medications\":[]}");
+        when(aiFileClient.askWithFile(any(), any(), any(), any())).thenReturn("{\"medications\":[]}");
 
         upload(bearer(newAccount()), "image/png", new byte[]{1})
                 .andExpect(status().isUnprocessableEntity())
@@ -59,7 +59,7 @@ class MedicationRecognitionApiTests extends ApiTestSupport {
 
     @Test
     void unparsableAiResponseReturnsBadGateway() throws Exception {
-        when(anthropicClient.askWithFile(any(), any(), any(), any())).thenReturn("죄송합니다. 읽을 수 없습니다.");
+        when(aiFileClient.askWithFile(any(), any(), any(), any())).thenReturn("읽을 수 없습니다.");
 
         upload(bearer(newAccount()), "image/jpeg", new byte[]{1})
                 .andExpect(status().isBadGateway())
@@ -68,7 +68,7 @@ class MedicationRecognitionApiTests extends ApiTestSupport {
 
     @Test
     void aiCallFailureReturnsBadGateway() throws Exception {
-        when(anthropicClient.askWithFile(any(), any(), any(), any())).thenThrow(new IllegalStateException("boom"));
+        when(aiFileClient.askWithFile(any(), any(), any(), any())).thenThrow(new IllegalStateException("boom"));
 
         upload(bearer(newAccount()), "image/jpeg", new byte[]{1})
                 .andExpect(status().isBadGateway())
@@ -84,7 +84,7 @@ class MedicationRecognitionApiTests extends ApiTestSupport {
                 .andExpect(jsonPath("$.code").value("MEDICATION_007"));
         upload(token, "image/jpeg", new byte[0])
                 .andExpect(status().isUnsupportedMediaType());
-        verifyNoInteractions(anthropicClient);
+        verifyNoInteractions(aiFileClient);
     }
 
     @Test

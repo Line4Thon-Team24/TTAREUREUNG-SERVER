@@ -3,10 +3,7 @@ package com.ttareureung.api.domain.medication.service;
 import com.ttareureung.api.domain.medication.dto.*;
 import com.ttareureung.api.domain.medication.dto.DailyScheduleResponse.Medicine;
 import com.ttareureung.api.domain.medication.dto.DailyScheduleResponse.TimeSlot;
-import com.ttareureung.api.domain.medication.entity.MealTimeSlot;
-import com.ttareureung.api.domain.medication.entity.Medication;
-import com.ttareureung.api.domain.medication.entity.MedicationLog;
-import com.ttareureung.api.domain.medication.entity.MedicationStatus;
+import com.ttareureung.api.domain.medication.entity.*;
 import com.ttareureung.api.domain.medication.exception.MedicationErrorCode;
 import com.ttareureung.api.domain.medication.repository.MedicationLogRepository;
 import com.ttareureung.api.domain.medication.repository.MedicationRepository;
@@ -15,7 +12,7 @@ import com.ttareureung.api.domain.profile.entity.ProfileRole;
 import com.ttareureung.api.domain.profile.repository.ProfileRepository;
 import com.ttareureung.api.domain.guardian.service.SeniorAccessValidator;
 import com.ttareureung.api.global.exception.CustomException;
-import com.ttareureung.api.global.security.AccessChecker;
+import com.ttareureung.api.domain.profile.service.ProfileAccessChecker;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,7 +32,7 @@ public class MedicationService {
     private final MedicationRepository medicationRepository;
     private final ProfileRepository profileRepository;
     private final SeniorAccessValidator seniorAccessValidator;
-    private final AccessChecker accessChecker;
+    private final ProfileAccessChecker accessChecker;
 
     @Transactional(readOnly = true)
     public DailyScheduleResponse getDailySchedule(Long accountId, Long seniorId, LocalDate date) {
@@ -114,21 +111,44 @@ public class MedicationService {
             }
             slots.values().forEach(Collections::sort); // 아침 점심 저녁
         }
-        return new MedicationListResponse(medications.stream()
+
+        List<MedicationListResponse.MedicationItem> items = medications.stream()
                 .map(m -> new MedicationListResponse.MedicationItem(
-                        m.getId(), m.getDrugName(), m.getCustomDrugName(), m.getImageUrl(), m.getEffect(),
-                        m.getStorageLocation(), m.getIntakeReason(), m.getFrequency(), m.getCycleType(),
-                        slots.getOrDefault(m.getId(), List.of()), m.isNotifyOnMiss(),
-                        m.getStartDate(), m.getEndDate(), m.getCreatedAt()))
-                .toList());
+                        m.getId(),
+                        m.getDrugName(),
+                        m.getCustomDrugName(),
+                        m.getImageUrl(),
+                        m.getEffect(),
+                        m.getStorageLocation(),
+                        m.getIntakeReason(),
+                        m.getFrequency(),
+                        m.getCycleType() != null ? CycleType.valueOf(m.getCycleType()) : null,
+                        slots.getOrDefault(m.getId(), new ArrayList<>()),
+                        m.isNotifyOnMiss(),
+                        m.getStartDate(),
+                        m.getEndDate(),
+                        m.getCreatedAt()
+                ))
+                .toList();
+
+        return new MedicationListResponse(items);
     }
 
     @Transactional
     public MedicationUpdateResponse updateMedication(Long accountId, Long medicationId, MedicationUpdateRequest req) {
         accessChecker.activeAccount(accountId);
         Medication m = findOwnedMedication(accountId, medicationId);
-        m.update(req.customDrugName(), req.frequency(), req.effect(), req.imageUrl(),
-                req.notifyOnMiss(), req.storageLocation(), req.intakeReason());
+        m.update(
+                req.customDrugName(),
+                req.frequency(),
+                req.effect(),
+                req.imageUrl(),
+                req.notifyOnMiss() != null
+                        ? req.notifyOnMiss()
+                        : m.isNotifyOnMiss(),
+                req.storageLocation(),
+                req.intakeReason()
+        );
         return new MedicationUpdateResponse(m.getId(), "약 정보가 수정되었습니다.");
     }
 
@@ -167,7 +187,7 @@ public class MedicationService {
                 .intakeReason(item.intakeReason())
                 .startDate(item.startDate())
                 .endDate(item.endDate())
-                .cycleType(item.cycleType())
+                .cycleType(item.cycleType() != null ? item.cycleType().name() : null)
                 .frequency(item.frequency())
                 .notifyOnMiss(item.notifyOnMiss())
                 .build());
