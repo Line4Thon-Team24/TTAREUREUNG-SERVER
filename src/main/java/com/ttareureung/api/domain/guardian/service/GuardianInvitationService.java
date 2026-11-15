@@ -57,10 +57,16 @@ public class GuardianInvitationService {
 
         LocalDateTime expirationThreshold = LocalDateTime.now().minusDays(7);
 
+        if (linkedPhones.contains(phone) ||
+                invitations.existsBySeniorProfileIdAndPhoneNumberAndStatusAndCreatedAtAfter(
+                        senior.getId(), phone, InvitationStatus.PENDING, expirationThreshold)) {
+            continue;
+        }
+
         int invited = 0;
         for (String phone : req.phoneNumbers().stream().map(PhoneNumbers::normalize).distinct().toList()) {
-            if (linkedPhones.contains(phone) || invitations.existsBySeniorProfileIdAndPhoneNumberAndStatus(
-                    senior.getId(), phone, InvitationStatus.PENDING)) {
+            if (linkedPhones.contains(phone) || invitations.existsBySeniorProfileIdAndPhoneNumberAndStatusAndCreatedAtAfter(
+                    senior.getId(), phone, InvitationStatus.PENDING, expirationThreshold)) {
                 continue;
             }
             GuardianInvitation invitation = invitations.save(GuardianInvitation.create(senior.getId(), phone));
