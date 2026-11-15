@@ -56,11 +56,11 @@ jobs:
       - name: Build and test
         run: bash ./gradlew build --no-daemon --stacktrace
 
-          - name: Upload test reports
-            if: failure()
-            uses: actions/upload-artifact@v4
-            with:
-              name: test-reports
-              path: |
-                build/test-results/test/
-                build/reports/tests/test/
+      - name: Upload test reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: |
+            build/test-results/test/
+            build/reports/tests/test/
