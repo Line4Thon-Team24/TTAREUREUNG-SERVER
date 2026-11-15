@@ -35,7 +35,7 @@ jobs:
           --health-retries=10
 
     env:
-      DB_URL: jdbc:mysql://127.0.0.1:3306/ttareureung_test
+      DB_URL: jdbc:mysql://127.0.0.1:3306/ttareureung_test?connectionTimeZone=UTC&forceConnectionTimeZoneToSession=true
       DB_USERNAME: ttareureung
       DB_PASSWORD: test_password
       JWT_SECRET: ci-only-secret-key-at-least-32-bytes
@@ -54,4 +54,13 @@ jobs:
           cache: gradle
 
       - name: Build and test
-        run: bash ./gradlew build --no-daemon
+        run: bash ./gradlew build --no-daemon --stacktrace
+
+          - name: Upload test reports
+            if: failure()
+            uses: actions/upload-artifact@v4
+            with:
+              name: test-reports
+              path: |
+                build/test-results/test/
+                build/reports/tests/test/
