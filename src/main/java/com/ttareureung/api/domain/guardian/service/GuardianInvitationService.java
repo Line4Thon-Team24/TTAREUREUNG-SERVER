@@ -19,6 +19,7 @@ import com.ttareureung.api.global.util.PhoneNumbers;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -54,6 +55,8 @@ public class GuardianInvitationService {
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
 
+        LocalDateTime expirationThreshold = LocalDateTime.now().minusDays(7);
+
         int invited = 0;
         for (String phone : req.phoneNumbers().stream().map(PhoneNumbers::normalize).distinct().toList()) {
             if (linkedPhones.contains(phone) || invitations.existsBySeniorProfileIdAndPhoneNumberAndStatus(
@@ -72,9 +75,10 @@ public class GuardianInvitationService {
     public AcceptInvitationResponse accept(Long accountId, AcceptInvitationRequest req) {
         accessChecker.activeAccount(accountId);
 
-        GuardianInvitation invitation = invitations.findByToken(req.token())
+        GuardianInvitation invitation = invitations.findByTokenWithLock(req.token())
                 .filter(i -> i.getStatus() == InvitationStatus.PENDING)
                 .orElseThrow(() -> new CustomException(GuardianErrorCode.INVITATION_NOT_FOUND));
+
         if (invitation.isExpired()) {
             throw new CustomException(GuardianErrorCode.INVITATION_EXPIRED);
         }

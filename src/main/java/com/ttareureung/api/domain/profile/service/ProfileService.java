@@ -125,7 +125,10 @@ public class ProfileService {
             links.findAllByProfileId(link.getSenior().getId()).stream()
                     .filter(other -> !other.getId().equals(link.getId()))
                     .findFirst()
-                    .ifPresent(next -> next.changePrimary(true));
+                    .ifPresent(next -> {
+                        next.changePrimary(true);
+                        links.save(next);
+                    });
         }
     }
 

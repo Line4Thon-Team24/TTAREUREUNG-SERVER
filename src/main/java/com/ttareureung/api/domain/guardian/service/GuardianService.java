@@ -27,7 +27,7 @@ public class GuardianService {
         accessChecker.activeAccount(accountId);
         seniorAccessValidator.requireSenior(accountId, req.seniorProfileId());
 
-        List<GuardianSenior> seniorLinks = links.findAllByProfileId(req.seniorProfileId()).stream()
+        List<GuardianSenior> seniorLinks = links.findAllBySeniorProfileIdWithLock(req.seniorProfileId()).stream()
                 .filter(l -> l.getStatus() == GuardianSeniorStatus.ACTIVE)
                 .toList();
 

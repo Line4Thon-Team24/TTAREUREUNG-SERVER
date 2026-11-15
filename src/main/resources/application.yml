@@ -44,5 +44,5 @@ springdoc:
     with-credentials: true
 
 gemini:
-  api-key: ${GEMINI_API_KEY}
+  api-key: ${GEMINI_API_KEY:}
   model: gemini-2.5-flash

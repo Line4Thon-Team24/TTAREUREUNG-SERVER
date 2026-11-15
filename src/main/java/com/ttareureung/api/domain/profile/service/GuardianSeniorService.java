@@ -48,6 +48,8 @@ public class GuardianSeniorService {
             if (firstLink) {
                 link.changePrimary(true);
             }
+            links.saveAndFlush(link);
+            
             return GuardianSeniorResponse.from(links.saveAndFlush(new GuardianSenior(guardian, senior)));
         } catch (DataIntegrityViolationException e) {
             // 동시 요청으로 exists 확인을 통과한 경우 UNIQUE 제약(1062)에서 걸림

@@ -10,6 +10,6 @@ import java.util.List;
 public record InvitationRequest(
         @JsonProperty("senior_profile_id") @NotNull Long seniorProfileId,
         @JsonProperty("phone_numbers") @NotEmpty @Size(max = 10)
-        List<@Pattern(regexp = "^01[0-9]-?\\d{3,4}-?\\d{4}$") String> phoneNumbers) {
+        List<@NotNull @Pattern(regexp = "^01[0-9]-?\\d{3,4}-?\\d{4}$") String> phoneNumbers) {
 
 }

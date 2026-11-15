@@ -1,9 +1,12 @@
 package com.ttareureung.api.domain.profile.repository;
 
 import com.ttareureung.api.domain.profile.entity.GuardianSenior;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
@@ -26,6 +29,10 @@ public interface GuardianSeniorRepository extends JpaRepository<GuardianSenior, 
             order by gs.id
             """)
     List<GuardianSenior> findAllByProfileId(Long profileId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select gs from GuardianSenior gs where gs.senior.id = :seniorProfileId")
+    List<GuardianSenior> findAllBySeniorProfileIdWithLock(@Param("seniorProfileId") Long seniorProfileId);
 
     boolean existsByGuardianIdAndSeniorId(Long guardianId, Long seniorId);
 

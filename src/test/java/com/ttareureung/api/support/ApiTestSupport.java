@@ -55,7 +55,7 @@ public abstract class ApiTestSupport {
         for (Long id : accountIds) {
             jdbcTemplate.update("""
                     DELETE ml FROM medication_logs ml
-                    JOIN medications m ON ml.medication_id = m.id
+                    JOIN medication m ON ml.medication_id = m.id
                     JOIN profiles p ON m.senior_profile_id = p.id
                     WHERE p.account_id = ?""", id);
             jdbcTemplate.update("""
