@@ -59,7 +59,7 @@ public abstract class ApiTestSupport {
                     JOIN profiles p ON m.senior_profile_id = p.id
                     WHERE p.account_id = ?""", id);
             jdbcTemplate.update("""
-                    DELETE m FROM medications m
+                    DELETE m FROM medication m
                     JOIN profiles p ON m.senior_profile_id = p.id
                     WHERE p.account_id = ?""", id);
             jdbcTemplate.update("""
