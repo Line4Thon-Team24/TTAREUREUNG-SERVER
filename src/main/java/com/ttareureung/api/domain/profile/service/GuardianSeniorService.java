@@ -32,7 +32,7 @@ public class GuardianSeniorService {
     }
 
     public GuardianSeniorResponse link(Long accountId, GuardianSeniorCreateRequest request) {
-        accessChecker.activeAccount(accountId);
+        accessChecker.lockedActiveAccount(accountId);
         Profile guardian = accessChecker.ownedProfile(accountId, request.guardianProfileId());
         Profile senior = accessChecker.ownedProfile(accountId, request.seniorProfileId());
         if (guardian.getRole() != ProfileRole.GUARDIAN || senior.getRole() != ProfileRole.SENIOR) {
@@ -43,7 +43,7 @@ public class GuardianSeniorService {
         }
         try {
             // 첫 연결시 대표로 설정 추가했습니다
-            boolean firstLink = links.findAllByProfileId(senior.getId()).isEmpty();
+            boolean firstLink = links.findAllBySeniorProfileIdWithLock(senior.getId()).isEmpty();
             GuardianSenior link = new GuardianSenior(guardian, senior);
             if (firstLink) {
                 link.changePrimary(true);
@@ -68,9 +68,10 @@ public class GuardianSeniorService {
                 .orElseThrow(() -> new CustomException(ProfileErrorCode.LINK_NOT_FOUND));
         boolean wasPrimary = link.isPrimary();
         Long seniorId = link.getSenior().getId();
+        List<GuardianSenior> seniorLinks = links.findAllBySeniorProfileIdWithLock(seniorId);
         links.delete(link);
         if (wasPrimary) {  // 대표가 해제시 대표 승계
-            links.findAllByProfileId(seniorId).stream()
+            seniorLinks.stream()
                     .filter(other -> !other.getId().equals(linkId))
                     .findFirst()
                     .ifPresent(next -> next.changePrimary(true));
