@@ -60,12 +60,9 @@ public class ProfileService {
         if (guardian == null) {
             return ProfileResponse.of(profile, List.of());
         }
-        // 첫 연결시 대표 설정 추가했습니다
-        boolean firstLink = links.findAllByProfileId(profile.getId()).isEmpty();
+        // 방금 만든 시니어의 첫 연결이므로 생성한 보호자가 대표
         GuardianSenior link = new GuardianSenior(guardian, profile);
-        if (firstLink) {
-            link.changePrimary(true);
-        }
+        link.changePrimary(true);
         links.save(link);
         return ProfileResponse.of(profile, List.of(ProfileSummary.from(guardian)));
     }
