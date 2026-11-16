@@ -42,7 +42,7 @@ public class GuardianSeniorService {
             throw new CustomException(ProfileErrorCode.ALREADY_LINKED);
         }
         try {
-            // 첫 연결시 대표로 설정 추가했습니다
+            // 시니어의 첫 연결이면 대표 보호자. 잠금 조회로 동시 연결 시 대표 2명 방지
             boolean firstLink = links.findAllBySeniorProfileIdWithLock(senior.getId()).isEmpty();
             GuardianSenior link = new GuardianSenior(guardian, senior);
             if (firstLink) {
