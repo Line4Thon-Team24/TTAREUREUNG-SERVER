@@ -92,10 +92,10 @@ public class DoseScheduleService {
         return new ScheduleResponse(target, isToday, taken, total, items);
     }
 
-    // 약이 있는 회차만 생성. 동시 요청으로 이미 만들어진 경우는 다시 조회로 흡수
-    private Map<MealTimeSlot, DoseSession> ensureSessions(Long seniorId, LocalDate today,
-                                                          Iterable<MealTimeSlot> slots,
-                                                          Map<MealTimeSlot, LocalTime> times) {
+    // 약이 있는 회차만 생성. 동시 요청으로 이미 만들어진 경우는 다시 조회로 흡수. 전화 흐름(current)에서도 사용
+    public Map<MealTimeSlot, DoseSession> ensureSessions(Long seniorId, LocalDate today,
+                                                         Iterable<MealTimeSlot> slots,
+                                                         Map<MealTimeSlot, LocalTime> times) {
         Map<MealTimeSlot, DoseSession> existing = sessionsOf(seniorId, today);
         boolean created = false;
         for (MealTimeSlot slot : slots) {

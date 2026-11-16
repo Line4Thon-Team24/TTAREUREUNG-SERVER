@@ -16,6 +16,26 @@ public enum SeniorErrorCode implements ErrorCode {
             HttpStatus.BAD_REQUEST,
             "SENIOR_002",
             "같은 회차가 중복되었습니다."
+    ),
+
+    // 접근 권한 없는 회차도 404. 403이면 회차 ID 존재 여부가 드러남
+    SESSION_NOT_FOUND(
+            HttpStatus.NOT_FOUND,
+            "SENIOR_003",
+            "회차를 찾을 수 없습니다."
+    ),
+
+    SESSION_FINISHED(
+            HttpStatus.CONFLICT,
+            "SENIOR_004",
+            "이미 끝난 회차입니다."
+    ),
+
+    // 전화 받은 뒤(IN_PROGRESS)에는 미응답 처리 불가
+    SESSION_NOT_WAITING(
+            HttpStatus.CONFLICT,
+            "SENIOR_005",
+            "전화 대기 중인 회차가 아닙니다."
     );
 
     private final HttpStatus status;

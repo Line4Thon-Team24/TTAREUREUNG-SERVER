@@ -100,4 +100,39 @@ public class DoseSession extends BaseTimeEntity {
         this.scheduledAt = scheduledAt;
         this.nextCallAt = scheduledAt;
     }
+
+    // 수신화면 표시 조건: 전화 대기 중이고 예정 시각이 지났거나, 이미 받아서 진행 중
+    public boolean isDue(LocalDateTime now) {
+        return status == DoseSessionStatus.IN_PROGRESS
+                || (status == DoseSessionStatus.SCHEDULED && nextCallAt != null && !nextCallAt.isAfter(now));
+    }
+
+    public boolean isWaitingForCall() {
+        return status == DoseSessionStatus.SCHEDULED;
+    }
+
+    // 같은 회차를 두 번 받아도 첫 통화 시각 유지
+    public void answer(LocalDateTime now) {
+        if (status == DoseSessionStatus.SCHEDULED) {
+            status = DoseSessionStatus.IN_PROGRESS;
+            answeredAt = now;
+            nextCallAt = null;
+        }
+    }
+
+    // 미응답 횟수 누적. 한도 도달 시 미복용 확정, 아니면 재전화 예약
+    public void recordNoAnswer(LocalDateTime now, int retryMinutes, int maxAttempts) {
+        callAttempts++;
+        if (callAttempts >= maxAttempts) {
+            markMissed(now);
+        } else {
+            nextCallAt = now.plusMinutes(retryMinutes);
+        }
+    }
+
+    public void markMissed(LocalDateTime now) {
+        status = DoseSessionStatus.MISSED;
+        finishedAt = now;
+        nextCallAt = null;
+    }
 }
