@@ -2,6 +2,7 @@ package com.ttareureung.api.domain.profile.service;
 
 import com.ttareureung.api.domain.medication.service.MedicationCleanupService;
 import com.ttareureung.api.domain.notification.service.NotificationSettingService;
+import com.ttareureung.api.domain.senior.service.SeniorScheduleCleanupService;
 import com.ttareureung.api.domain.profile.dto.ProfileCreateRequest;
 import com.ttareureung.api.domain.profile.dto.ProfileResponse;
 import com.ttareureung.api.domain.profile.dto.ProfileSummary;
@@ -32,17 +33,20 @@ public class ProfileService {
     private final GuardianSeniorRepository links;
     private final NotificationSettingService notificationSettingService;
     private final MedicationCleanupService medicationCleanupService;
+    private final SeniorScheduleCleanupService scheduleCleanupService;
 
     public ProfileService(ProfileAccessChecker accessChecker,
                           ProfileRepository profiles,
                           GuardianSeniorRepository links,
                           NotificationSettingService notificationSettingService,
-                          MedicationCleanupService medicationCleanupService) {
+                          MedicationCleanupService medicationCleanupService,
+                          SeniorScheduleCleanupService scheduleCleanupService) {
         this.accessChecker = accessChecker;
         this.profiles = profiles;
         this.links = links;
         this.notificationSettingService = notificationSettingService;
         this.medicationCleanupService = medicationCleanupService;
+        this.scheduleCleanupService = scheduleCleanupService;
     }
 
     public ProfileResponse create(Long accountId, ProfileCreateRequest request) {
@@ -106,6 +110,7 @@ public class ProfileService {
             throw new CustomException(ProfileErrorCode.LAST_GUARDIAN);
         }
         if (profile.getRole() == ProfileRole.SENIOR) {
+            scheduleCleanupService.deleteAllBySenior(profileId);    // 회차·복용 시각 정리
             medicationCleanupService.deleteAllBySenior(profileId);  // 약·복용 로그 정리
         } else {
             handOverPrimary(profile);                               // 대표 보호자 승계

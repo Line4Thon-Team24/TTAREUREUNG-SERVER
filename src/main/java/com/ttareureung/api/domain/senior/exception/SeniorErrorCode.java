@@ -1,4 +1,3 @@
-
 package com.ttareureung.api.domain.senior.exception;
 
 import com.ttareureung.api.global.exception.ErrorCode;
@@ -6,22 +5,17 @@ import org.springframework.http.HttpStatus;
 
 public enum SeniorErrorCode implements ErrorCode {
 
-    SENIOR_NOT_FOUND(
-            HttpStatus.NOT_FOUND,
+    // 회차 시각이 뒤섞이면 다음 전화 계산이 어긋남
+    DOSE_TIME_ORDER_INVALID(
+            HttpStatus.BAD_REQUEST,
             "SENIOR_001",
-            "시니어 정보를 찾을 수 없습니다."
+            "복용 시각은 아침, 점심, 저녁, 밤 순서여야 합니다."
     ),
 
-    ACCESS_DENIED(
-            HttpStatus.FORBIDDEN,
+    DUPLICATE_TIME_SLOT(
+            HttpStatus.BAD_REQUEST,
             "SENIOR_002",
-            "해당 시니어에 대한 접근 권한이 없습니다."
-    ),
-
-    ALREADY_REGISTERED(
-            HttpStatus.CONFLICT,
-            "SENIOR_003",
-            "이미 등록된 시니어입니다."
+            "같은 회차가 중복되었습니다."
     );
 
     private final HttpStatus status;
