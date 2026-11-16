@@ -2,6 +2,7 @@ package com.ttareureung.api.domain.senior.service;
 
 import com.ttareureung.api.domain.medication.entity.MealTimeSlot;
 import com.ttareureung.api.domain.medication.entity.Medication;
+import com.ttareureung.api.domain.senior.entity.RecognitionResult;
 
 import java.util.List;
 
@@ -37,6 +38,19 @@ public final class VoiceText {
             sb.append(" ").append(medication.getDoseAmount()).append(" 드세요.");
         }
         return sb.toString();
+    }
+
+    public static String recognition(RecognitionResult result) {
+        return switch (result) {
+            case MATCH -> "맞는 약이에요!";
+            case MISMATCH -> "다른 약이에요. 다시 찾아주세요.";
+            case UNCERTAIN -> "확실하지 않아요. 사진을 보고 골라 주세요.";
+        };
+    }
+
+    // 복용 처리 후. 남은 약이 있으면 다음 약 찾기로 유도
+    public static String afterIntake(int remaining) {
+        return remaining > 0 ? "잘 드셨어요. 다음 약을 찾아볼까요?" : "모든 약을 다 드셨어요.";
     }
 
     private static String ordinal(int order) {

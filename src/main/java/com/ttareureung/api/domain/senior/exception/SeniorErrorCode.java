@@ -36,6 +36,32 @@ public enum SeniorErrorCode implements ErrorCode {
             HttpStatus.CONFLICT,
             "SENIOR_005",
             "전화 대기 중인 회차가 아닙니다."
+    ),
+
+    MEDICATION_NOT_IN_SESSION(
+            HttpStatus.NOT_FOUND,
+            "SENIOR_006",
+            "이 회차에 없는 약입니다."
+    ),
+
+    // 비용·남용 방지. 한도 뒤에는 사진 보고 직접 선택
+    RECOGNITION_LIMIT_EXCEEDED(
+            HttpStatus.TOO_MANY_REQUESTS,
+            "SENIOR_007",
+            "판독 횟수를 넘었습니다. 사진을 보고 직접 골라주세요."
+    ),
+
+    // 판독·복용은 전화를 받은 뒤(IN_PROGRESS)에만
+    SESSION_NOT_IN_PROGRESS(
+            HttpStatus.CONFLICT,
+            "SENIOR_008",
+            "전화를 받은 뒤에 진행할 수 있습니다."
+    ),
+
+    IMAGE_TOO_LARGE(
+            HttpStatus.PAYLOAD_TOO_LARGE,
+            "SENIOR_009",
+            "사진은 5MB 이하여야 합니다."
     );
 
     private final HttpStatus status;

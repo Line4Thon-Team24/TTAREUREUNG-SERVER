@@ -21,6 +21,10 @@ public interface DoseSessionRepository extends JpaRepository<DoseSession, Long> 
     @Query("select s from DoseSession s join fetch s.senior where s.id = :id")
     Optional<DoseSession> findByIdForUpdate(@Param("id") Long id);
 
+    // 외부 API 호출(약 판독)처럼 오래 걸리는 작업은 잠금 없이 조회
+    @Query("select s from DoseSession s join fetch s.senior where s.id = :id")
+    Optional<DoseSession> findByIdWithSenior(@Param("id") Long id);
+
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("delete from DoseSession s where s.senior.id = :seniorId")
     int deleteAllBySeniorId(@Param("seniorId") Long seniorId);
