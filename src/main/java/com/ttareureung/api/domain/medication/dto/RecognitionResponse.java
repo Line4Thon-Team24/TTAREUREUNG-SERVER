@@ -10,6 +10,7 @@ public record RecognitionResponse(List<RecognizedMedication> medications) {
             @JsonProperty("drug_name") String drugName,
             String effect,
             String frequency,
+            @JsonProperty("dose_amount") String doseAmount,
             @JsonProperty("meal_time_slots") List<MealTimeSlot> mealTimeSlots,
             Integer confidence   // 모델 추정값
     ) {

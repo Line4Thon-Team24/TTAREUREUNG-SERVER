@@ -16,6 +16,8 @@ public record MedicationListResponse(List<MedicationItem> medications) {
             @JsonProperty("image_url") String imageUrl,
             String effect,
             @JsonProperty("storage_location") String storageLocation,
+            @JsonProperty("dose_amount") String doseAmount,
+            String appearance,
             @JsonProperty("intake_reason") String intakeReason,
             String frequency,
             @JsonProperty("cycle_type") CycleType cycleType,

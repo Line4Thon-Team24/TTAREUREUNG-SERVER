@@ -11,6 +11,8 @@ public record MedicationUpdateRequest(
         @JsonProperty("image_url") @Size(max = 255) String imageUrl,
         @JsonProperty("notify_on_miss") Boolean notifyOnMiss,
         @JsonProperty("storage_location") @Pattern(regexp = ".*\\S.*") @Size(max = 100) String storageLocation,
+        @JsonProperty("dose_amount") @Size(max = 20) String doseAmount,
+        @Size(max = 50) String appearance,
         @JsonProperty("intake_reason") @Size(max = 1000) String intakeReason
 ) {
 
