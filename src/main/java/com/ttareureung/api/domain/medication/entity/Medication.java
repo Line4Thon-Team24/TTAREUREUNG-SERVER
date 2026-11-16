@@ -130,6 +130,11 @@ public class Medication {
         }
     }
 
+    // 시니어가 못 먹은 약은 일정을 하루 뒤로. 늘어난 날짜의 복용 기록은 호출자가 생성
+    public void extendEndDate(int days) {
+        this.endDate = this.endDate.plusDays(days);
+    }
+
     public String getDisplayName() {
         return customDrugName != null && !customDrugName.isBlank() ? customDrugName : drugName;
     }

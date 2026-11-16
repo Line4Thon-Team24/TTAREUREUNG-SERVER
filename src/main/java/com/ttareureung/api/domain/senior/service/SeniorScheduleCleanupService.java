@@ -1,6 +1,7 @@
 package com.ttareureung.api.domain.senior.service;
 
 import com.ttareureung.api.domain.senior.repository.DoseSessionRepository;
+import com.ttareureung.api.domain.senior.repository.GuardianAlertRepository;
 import com.ttareureung.api.domain.senior.repository.MedicationRecognitionRepository;
 import com.ttareureung.api.domain.senior.repository.SeniorDoseTimeRepository;
 import org.springframework.stereotype.Service;
@@ -11,12 +12,14 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class SeniorScheduleCleanupService {
 
+    private final GuardianAlertRepository alerts;
     private final MedicationRecognitionRepository recognitions;
     private final DoseSessionRepository sessions;
     private final SeniorDoseTimeRepository doseTimes;
 
-    public SeniorScheduleCleanupService(MedicationRecognitionRepository recognitions,
+    public SeniorScheduleCleanupService(GuardianAlertRepository alerts, MedicationRecognitionRepository recognitions,
                                         DoseSessionRepository sessions, SeniorDoseTimeRepository doseTimes) {
+        this.alerts = alerts;
         this.recognitions = recognitions;
         this.sessions = sessions;
         this.doseTimes = doseTimes;
@@ -25,6 +28,7 @@ public class SeniorScheduleCleanupService {
     // 프로필 삭제 트랜잭션 안에서만 호출
     @Transactional(propagation = Propagation.MANDATORY)
     public void deleteAllBySenior(Long seniorProfileId) {
+        alerts.deleteAllBySeniorId(seniorProfileId);
         recognitions.deleteAllBySeniorId(seniorProfileId);
         sessions.deleteAllBySeniorId(seniorProfileId);
         doseTimes.deleteAllBySeniorId(seniorProfileId);

@@ -165,9 +165,11 @@ class DoseCallApiTests extends ApiTestSupport {
 
         noAnswer(token, sessionId).andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("SENIOR_004"));
         answer(token, sessionId).andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("SENIOR_004"));
+        // 미복용 약은 하루 연장되므로 다음 전화는 내일 아침
         getAs(token, currentUrl(f.seniorId()))
                 .andExpect(jsonPath("$.data.current").doesNotExist())
-                .andExpect(jsonPath("$.data.next").doesNotExist());
+                .andExpect(jsonPath("$.data.next.timeSlot").value("MORNING"))
+                .andExpect(jsonPath("$.data.next.scheduledAt").value(containsString(TODAY.plusDays(1).toString())));
         getAs(token, "/api/v1/seniors/" + f.seniorId() + "/schedules")
                 .andExpect(jsonPath("$.data.sessions[0].status").value("MISSED"))
                 .andExpect(jsonPath("$.data.sessions[0].medications[0].status").value("MISSED"));
