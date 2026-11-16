@@ -216,15 +216,6 @@ class AuthApiTests {
         long id = signup(newEmail());
         String token = signedToken(id, "refresh", Instant.now().minusSeconds(7200), Instant.now().minusSeconds(3600));
         storeRefresh(id, token, Instant.now().minusSeconds(3600));
-        System.out.println("DB expiry: " +
-                jdbcTemplate.queryForObject(
-                        "SELECT expires_at FROM refresh_tokens WHERE token_hash = ?",
-                        LocalDateTime.class,
-                        hash(token)
-                ));
-
-        System.out.println("UTC now: " +
-                LocalDateTime.now(ZoneOffset.UTC));
         tokenRequest("refresh", new Cookie(COOKIE_NAME, token))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("AUTH_003"));
@@ -255,15 +246,6 @@ class AuthApiTests {
         );
 
         assertThat(updatedRows).isEqualTo(1);
-
-        System.out.println("UPDATED ROWS: " + updatedRows);
-
-        System.out.println("DB EXPIRY: " +
-                jdbcTemplate.queryForObject(
-                        "SELECT DATE_FORMAT(expires_at, '%Y-%m-%d %H:%i:%s') FROM refresh_tokens WHERE token_hash = ?",
-                        String.class,
-                        hash(token)
-                ));
 
         tokenRequest("refresh", new Cookie(COOKIE_NAME, token))
                 .andExpect(status().isUnauthorized())
