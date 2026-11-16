@@ -1,5 +1,6 @@
 package com.ttareureung.api.domain.senior.service;
 
+import com.ttareureung.api.domain.file.service.FileUrlResolver;
 import com.ttareureung.api.domain.medication.entity.IntakeVerification;
 import com.ttareureung.api.domain.medication.entity.MedicationLog;
 import com.ttareureung.api.domain.medication.entity.MedicationStatus;
@@ -29,13 +30,15 @@ public class IntakeService {
     private final ProfileAccessChecker accessChecker;
     private final DoseSessionFinder finder;
     private final MedicationRecognitionRepository recognitions;
+    private final FileUrlResolver urls;
     private final Clock clock;
 
     public IntakeService(ProfileAccessChecker accessChecker, DoseSessionFinder finder,
-                         MedicationRecognitionRepository recognitions, Clock clock) {
+                         MedicationRecognitionRepository recognitions, FileUrlResolver urls, Clock clock) {
         this.accessChecker = accessChecker;
         this.finder = finder;
         this.recognitions = recognitions;
+        this.urls = urls;
         this.clock = clock;
     }
 
@@ -58,7 +61,8 @@ public class IntakeService {
         List<MedicationLog> remaining = slotLogs.stream()
                 .filter(l -> l.getStatus() != MedicationStatus.TAKEN)
                 .toList();
-        MedicationGuide next = remaining.isEmpty() ? null : MedicationGuide.of(1, remaining.get(0).getMedication());
+        MedicationGuide next = remaining.isEmpty() ? null : MedicationGuide.of(1, remaining.get(0).getMedication(),
+                urls.resolve(remaining.get(0).getMedication().getImageUrl()));
         return new IntakeResponse(session.getId(), medicationId, target.getStatus(), target.getTakenAt(),
                 target.getVerification(), remaining.size(), slotLogs.size(), next, VoiceText.afterIntake(remaining.size()));
     }

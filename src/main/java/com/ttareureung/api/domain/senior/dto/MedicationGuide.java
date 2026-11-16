@@ -15,8 +15,9 @@ public record MedicationGuide(
         @Schema(example = "2정") String doseAmount,
         @Schema(description = "TTS로 읽을 문장") String voiceText
 ) {
-    public static MedicationGuide of(int order, Medication m) {
-        return new MedicationGuide(order, m.getId(), m.getDisplayName(), m.getImageUrl(),
+    // imageUrl은 저장된 키가 아니라 화면에서 열 수 있는 링크(FileUrlResolver로 변환한 값)
+    public static MedicationGuide of(int order, Medication m, String imageUrl) {
+        return new MedicationGuide(order, m.getId(), m.getDisplayName(), imageUrl,
                 m.getAppearance(), m.getStorageLocation(), m.getDoseAmount(), VoiceText.findMedication(order, m));
     }
 }

@@ -49,3 +49,15 @@ springdoc:
 gemini:
   api-key: ${GEMINI_API_KEY:}
   model: ${GEMINI_MODEL:gemini-2.5-flash}
+
+# 사진 저장소. s3.bucket이 있으면 S3, 없으면 서버 디스크(local.dir)
+storage:
+  url-ttl-minutes: 60
+  public-base-url: ${PUBLIC_BASE_URL:http://localhost:8080}
+  s3:
+    bucket: ${AWS_S3_BUCKET:}
+    region: ${AWS_REGION:ap-northeast-2}
+    access-key: ${AWS_ACCESS_KEY_ID:}
+    secret-key: ${AWS_SECRET_ACCESS_KEY:}
+  local:
+    dir: ${FILE_STORAGE_DIR:${java.io.tmpdir}/ttareureung-uploads}

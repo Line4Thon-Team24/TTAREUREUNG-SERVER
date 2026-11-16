@@ -1,5 +1,6 @@
 package com.ttareureung.api.domain.medication.service;
 
+import com.ttareureung.api.domain.file.service.FileUrlResolver;
 import com.ttareureung.api.domain.medication.dto.*;
 import com.ttareureung.api.domain.medication.dto.DailyScheduleResponse.Medicine;
 import com.ttareureung.api.domain.medication.dto.DailyScheduleResponse.TimeSlot;
@@ -33,6 +34,7 @@ public class MedicationService {
     private final ProfileRepository profileRepository;
     private final SeniorAccessValidator seniorAccessValidator;
     private final ProfileAccessChecker accessChecker;
+    private final FileUrlResolver fileUrlResolver;  // image_url 키를 조회 링크로 변환
 
     @Transactional(readOnly = true)
     public DailyScheduleResponse getDailySchedule(Long accountId, Long seniorId, LocalDate date) {
@@ -117,7 +119,7 @@ public class MedicationService {
                         m.getId(),
                         m.getDrugName(),
                         m.getCustomDrugName(),
-                        m.getImageUrl(),
+                        fileUrlResolver.resolve(m.getImageUrl()),
                         m.getEffect(),
                         m.getStorageLocation(),
                         m.getDoseAmount(),
