@@ -1,5 +1,6 @@
 package com.ttareureung.api.domain.medication.repository;
 
+import com.ttareureung.api.domain.medication.entity.MealTimeSlot;
 import com.ttareureung.api.domain.medication.entity.MedicationLog;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -32,6 +33,9 @@ public interface MedicationLogRepository extends JpaRepository<MedicationLog, Lo
 
     @Query("select distinct l.medication.id, l.mealTimeSlot from MedicationLog l where l.medication.id in :ids")
     List<Object[]> findSlotsByMedicationIds(@Param("ids") Collection<Long> ids);
+
+    // 일정 연장 시 같은 날짜·회차 기록 중복 생성 방지
+    boolean existsByMedicationIdAndTargetDateAndMealTimeSlot(Long medicationId, LocalDate targetDate, MealTimeSlot slot);
 
     @Query("""
         select l from MedicationLog l join fetch l.medication m
