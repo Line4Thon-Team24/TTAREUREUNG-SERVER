@@ -32,7 +32,7 @@ public class GuardianSeniorService {
     }
 
     public GuardianSeniorResponse link(Long accountId, GuardianSeniorCreateRequest request) {
-        accessChecker.activeAccount(accountId);
+        accessChecker.lockedActiveAccount(accountId);
         Profile guardian = accessChecker.ownedProfile(accountId, request.guardianProfileId());
         Profile senior = accessChecker.ownedProfile(accountId, request.seniorProfileId());
         if (guardian.getRole() != ProfileRole.GUARDIAN || senior.getRole() != ProfileRole.SENIOR) {
@@ -42,7 +42,16 @@ public class GuardianSeniorService {
             throw new CustomException(ProfileErrorCode.ALREADY_LINKED);
         }
         try {
-            return GuardianSeniorResponse.from(links.saveAndFlush(new GuardianSenior(guardian, senior)));
+            // 첫 연결시 대표로 설정 추가했습니다
+            boolean firstLink = links.findAllBySeniorProfileIdWithLock(senior.getId()).isEmpty();
+            GuardianSenior link = new GuardianSenior(guardian, senior);
+            if (firstLink) {
+                link.changePrimary(true);
+            }
+
+            GuardianSenior savedLink = links.saveAndFlush(link);
+            return GuardianSeniorResponse.from(savedLink);
+
         } catch (DataIntegrityViolationException e) {
             // 동시 요청으로 exists 확인을 통과한 경우 UNIQUE 제약(1062)에서 걸림
             if (e.getMostSpecificCause() instanceof SQLException sql && sql.getErrorCode() == 1062) {
@@ -57,7 +66,16 @@ public class GuardianSeniorService {
         accessChecker.activeAccount(accountId);
         GuardianSenior link = links.findByIdAndAccountId(linkId, accountId)
                 .orElseThrow(() -> new CustomException(ProfileErrorCode.LINK_NOT_FOUND));
+        boolean wasPrimary = link.isPrimary();
+        Long seniorId = link.getSenior().getId();
+        List<GuardianSenior> seniorLinks = links.findAllBySeniorProfileIdWithLock(seniorId);
         links.delete(link);
+        if (wasPrimary) {  // 대표가 해제시 대표 승계
+            seniorLinks.stream()
+                    .filter(other -> !other.getId().equals(linkId))
+                    .findFirst()
+                    .ifPresent(next -> next.changePrimary(true));
+        }
     }
 
     // profileId가 없으면 계정 전체 연결, 있으면 해당 프로필이 포함된 연결만

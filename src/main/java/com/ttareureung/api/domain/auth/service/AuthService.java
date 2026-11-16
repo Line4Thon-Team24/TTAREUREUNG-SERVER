@@ -84,6 +84,9 @@ public class AuthService {
         if (!current.getExpiresAt().isAfter(LocalDateTime.ofInstant(clock.instant(), ZoneOffset.UTC))) {
             throw new CustomException(AuthErrorCode.TOKEN_EXPIRED);
         }
+        System.out.println("HIBERNATE DB EXPIRY: " + current.getExpiresAt());
+        System.out.println("APPLICATION UTC NOW: " +
+                LocalDateTime.ofInstant(clock.instant(), ZoneOffset.UTC));
         requireActive(account);
         refreshTokens.delete(current);
         return issueAndStore(account);

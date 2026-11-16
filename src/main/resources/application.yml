@@ -15,6 +15,15 @@ spring:
       ddl-auto: update
     open-in-view: false
     show-sql: true
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
 
 server:
   port: 8080
@@ -33,3 +42,7 @@ jwt:
 springdoc:
   swagger-ui:
     with-credentials: true
+
+gemini:
+  api-key: ${GEMINI_API_KEY:}
+  model: gemini-2.5-flash

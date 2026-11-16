@@ -1,5 +1,7 @@
 package com.ttareureung.api.domain.profile.service;
 
+import com.ttareureung.api.domain.medication.service.MedicationCleanupService;
+import com.ttareureung.api.domain.notification.service.NotificationSettingService;
 import com.ttareureung.api.domain.profile.dto.ProfileCreateRequest;
 import com.ttareureung.api.domain.profile.dto.ProfileResponse;
 import com.ttareureung.api.domain.profile.dto.ProfileSummary;
@@ -28,11 +30,19 @@ public class ProfileService {
     private final ProfileAccessChecker accessChecker;
     private final ProfileRepository profiles;
     private final GuardianSeniorRepository links;
+    private final NotificationSettingService notificationSettingService;
+    private final MedicationCleanupService medicationCleanupService;
 
-    public ProfileService(ProfileAccessChecker accessChecker, ProfileRepository profiles, GuardianSeniorRepository links) {
+    public ProfileService(ProfileAccessChecker accessChecker,
+                          ProfileRepository profiles,
+                          GuardianSeniorRepository links,
+                          NotificationSettingService notificationSettingService,
+                          MedicationCleanupService medicationCleanupService) {
         this.accessChecker = accessChecker;
         this.profiles = profiles;
         this.links = links;
+        this.notificationSettingService = notificationSettingService;
+        this.medicationCleanupService = medicationCleanupService;
     }
 
     public ProfileResponse create(Long accountId, ProfileCreateRequest request) {
@@ -50,7 +60,13 @@ public class ProfileService {
         if (guardian == null) {
             return ProfileResponse.of(profile, List.of());
         }
-        links.save(new GuardianSenior(guardian, profile));
+        // 첫 연결시 대표 설정 추가했습니다
+        boolean firstLink = links.findAllByProfileId(profile.getId()).isEmpty();
+        GuardianSenior link = new GuardianSenior(guardian, profile);
+        if (firstLink) {
+            link.changePrimary(true);
+        }
+        links.save(link);
         return ProfileResponse.of(profile, List.of(ProfileSummary.from(guardian)));
     }
 
@@ -92,8 +108,28 @@ public class ProfileService {
                 && profiles.existsByAccountIdAndRole(accountId, ProfileRole.SENIOR)) {
             throw new CustomException(ProfileErrorCode.LAST_GUARDIAN);
         }
+        if (profile.getRole() == ProfileRole.SENIOR) {
+            medicationCleanupService.deleteAllBySenior(profileId);  // 약·복용 로그 정리
+        } else {
+            handOverPrimary(profile);                               // 대표 보호자 승계
+        }
+        notificationSettingService.deleteByProfileId(profileId);
         links.deleteAllByProfileId(profileId);
         profiles.delete(profile);
+    }
+
+    // 삭제되는 보호자가 대표였던 시니어는 남은 보호자 중 먼저 연결된 사람에게 대표를 넘김
+    private void handOverPrimary(Profile guardian) {
+        for (GuardianSenior link : links.findAllByProfileId(guardian.getId())) {
+            if (!link.isPrimary()) continue;
+            links.findAllByProfileId(link.getSenior().getId()).stream()
+                    .filter(other -> !other.getId().equals(link.getId()))
+                    .findFirst()
+                    .ifPresent(next -> {
+                        next.changePrimary(true);
+                        links.save(next);
+                    });
+        }
     }
 
     // 보호자 프로필 생성에 guardianProfileId를 넣는 경우도 잘못된 요청으로 처리
