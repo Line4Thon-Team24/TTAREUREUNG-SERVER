@@ -45,6 +45,8 @@ class MedicationManageApiTests extends ApiTestSupport {
         assertThat(row.get("cycle_type")).isEqualTo("DAILY");
         assertThat(row.get("created_at")).isNotNull();
         assertThat(row.get("storage_location")).isEqualTo("약 상자 위에서 2번째 칸");
+        assertThat(row.get("dose_amount")).isEqualTo("1정");
+        assertThat(row.get("appearance")).isEqualTo("흰색 원형 알약");
         assertThat(row.get("intake_reason")).isNull();
 
         assertThat(count("SELECT COUNT(*) FROM medication_logs WHERE medication_id = ?", medicationId)).isEqualTo(6);
@@ -123,6 +125,8 @@ class MedicationManageApiTests extends ApiTestSupport {
                 .andExpect(jsonPath("$.data.medications.length()").value(2))
                 .andExpect(jsonPath("$.data.medications[0].medication_id").isNumber())
                 .andExpect(jsonPath("$.data.medications[0].storage_location").value("약 상자 위에서 2번째 칸"))
+                .andExpect(jsonPath("$.data.medications[0].dose_amount").value("1정"))
+                .andExpect(jsonPath("$.data.medications[0].appearance").value("흰색 원형 알약"))
                 .andExpect(jsonPath("$.data.medications[0].meal_time_slots.length()").value(1))
                 .andExpect(jsonPath("$.data.medications[0].created_at").isNotEmpty());
 
@@ -139,7 +143,8 @@ class MedicationManageApiTests extends ApiTestSupport {
         String url = "/api/v1/medications/" + medicationId;
 
         putJson(token, url, Map.of("custom_drug_name", "허리 아플 때 먹는 약", "frequency", "하루 2회, 식후 30분",
-                "storage_location", "약 서랍 첫째 칸", "intake_reason", "무릎 관절 통증 완화"))
+                "storage_location", "약 서랍 첫째 칸", "intake_reason", "무릎 관절 통증 완화",
+                "dose_amount", "2정", "appearance", "파란색 원기둥"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.medication_id").value(medicationId));
 
@@ -150,13 +155,23 @@ class MedicationManageApiTests extends ApiTestSupport {
         assertThat(row.get("effect")).isEqualTo("통증 완화");
         assertThat(row.get("storage_location")).isEqualTo("약 서랍 첫째 칸");
         assertThat(row.get("intake_reason")).isEqualTo("무릎 관절 통증 완화");
+        assertThat(row.get("dose_amount")).isEqualTo("2정");
+        assertThat(row.get("appearance")).isEqualTo("파란색 원기둥");
 
         putJson(token, url, "{}").andExpect(status().isOk());
         assertThat(jdbcTemplate.queryForObject("SELECT custom_drug_name FROM medication WHERE id = ?", String.class, medicationId))
                 .isEqualTo("허리 아플 때 먹는 약");
+        assertThat(jdbcTemplate.queryForObject("SELECT dose_amount FROM medication WHERE id = ?", String.class, medicationId))
+                .isEqualTo("2정");
 
-        putJson(token, url, Map.of("intake_reason", "")).andExpect(status().isOk());
+        putJson(token, url, Map.of("intake_reason", "", "dose_amount", "", "appearance", "")).andExpect(status().isOk());
         assertThat(jdbcTemplate.queryForObject("SELECT intake_reason FROM medication WHERE id = ?", String.class, medicationId)).isNull();
+        assertThat(jdbcTemplate.queryForObject("SELECT dose_amount FROM medication WHERE id = ?", String.class, medicationId)).isNull();
+        assertThat(jdbcTemplate.queryForObject("SELECT appearance FROM medication WHERE id = ?", String.class, medicationId)).isNull();
+
+        putJson(token, url, Map.of("dose_amount", "정".repeat(21)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("COMMON_400"));
 
         putJson(token, url, Map.of("storage_location", "   "))
                 .andExpect(status().isBadRequest())

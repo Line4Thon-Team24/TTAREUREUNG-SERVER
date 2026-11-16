@@ -32,6 +32,7 @@ class MedicationScheduleApiTests extends ApiTestSupport {
                 .andExpect(jsonPath("$.data.time_slots[0].slot_name").value("아침 식후"))
                 .andExpect(jsonPath("$.data.time_slots[0].status").value("PENDING"))
                 .andExpect(jsonPath("$.data.time_slots[0].medicines[0].name").value("혈압약"))
+                .andExpect(jsonPath("$.data.time_slots[0].medicines[0].dose_amount").value("1정"))
                 .andExpect(jsonPath("$.data.time_slots[0].medicines[0].log_id").isNumber())
                 .andExpect(jsonPath("$.data.time_slots[1].slot").value("LUNCH"));
     }

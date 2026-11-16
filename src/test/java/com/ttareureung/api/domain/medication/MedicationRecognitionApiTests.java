@@ -19,7 +19,7 @@ class MedicationRecognitionApiTests extends ApiTestSupport {
 
     private static final String RESULT = """
             {"medications":[{"drug_name":"아로르신정 25밀리그램","effect":"관절염 통증 완화",
-            "frequency":"1일 2회, 아침/저녁 식후 복용","meal_time_slots":["MORNING","DINNER"],"confidence":99}]}""";
+            "frequency":"1일 2회, 아침/저녁 식후 복용","dose_amount":"1정","meal_time_slots":["MORNING","DINNER"],"confidence":99}]}""";
 
     @MockitoBean
     private AiFileClient aiFileClient;
@@ -34,6 +34,7 @@ class MedicationRecognitionApiTests extends ApiTestSupport {
                 .andExpect(jsonPath("$.data.medications.length()").value(1))
                 .andExpect(jsonPath("$.data.medications[0].drug_name").value("아로르신정 25밀리그램"))
                 .andExpect(jsonPath("$.data.medications[0].meal_time_slots[1]").value("DINNER"))
+                .andExpect(jsonPath("$.data.medications[0].dose_amount").value("1정"))
                 .andExpect(jsonPath("$.data.medications[0].confidence").value(99));
         verify(aiFileClient).askWithFile(any(), eq("image/jpeg"), any(), any());
     }

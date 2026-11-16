@@ -21,6 +21,7 @@ public record DailyScheduleResponse(
             @JsonProperty("log_id") Long logId,
             @JsonProperty("medication_id") Long medicationId,
             String name,
+            @JsonProperty("dose_amount") String doseAmount,
             MedicationStatus status
     ) {}
 }

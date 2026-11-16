@@ -120,6 +120,8 @@ public class MedicationService {
                         m.getImageUrl(),
                         m.getEffect(),
                         m.getStorageLocation(),
+                        m.getDoseAmount(),
+                        m.getAppearance(),
                         m.getIntakeReason(),
                         m.getFrequency(),
                         m.getCycleType() != null ? CycleType.valueOf(m.getCycleType()) : null,
@@ -147,6 +149,8 @@ public class MedicationService {
                         ? req.notifyOnMiss()
                         : m.isNotifyOnMiss(),
                 req.storageLocation(),
+                req.doseAmount(),
+                req.appearance(),
                 req.intakeReason()
         );
         return new MedicationUpdateResponse(m.getId(), "약 정보가 수정되었습니다.");
@@ -184,6 +188,8 @@ public class MedicationService {
                 .imageUrl(item.imageUrl())
                 .effect(item.effect())
                 .storageLocation(item.storageLocation())
+                .doseAmount(item.doseAmount())
+                .appearance(item.appearance())
                 .intakeReason(item.intakeReason())
                 .startDate(item.startDate())
                 .endDate(item.endDate())
@@ -206,7 +212,7 @@ public class MedicationService {
     private TimeSlot toTimeSlot(MealTimeSlot slot, List<MedicationLog> logs) {
         List<Medicine> medicines = logs.stream()
                 .map(l -> new Medicine(l.getId(), l.getMedication().getId(),
-                        l.getMedication().getDisplayName(), l.getStatus()))
+                        l.getMedication().getDisplayName(), l.getMedication().getDoseAmount(), l.getStatus()))
                 .toList();
 
         return new TimeSlot(slot.name(), slot.getLabel(), calcSlotStatus(logs), medicines);

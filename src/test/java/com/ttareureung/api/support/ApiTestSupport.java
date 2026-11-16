@@ -129,6 +129,8 @@ public abstract class ApiTestSupport {
         item.put("drug_name", drugName);
         item.put("effect", "통증 완화");
         item.put("storage_location", "약 상자 위에서 2번째 칸");
+        item.put("dose_amount", "1정");
+        item.put("appearance", "흰색 원형 알약");
         item.put("start_date", start);
         item.put("end_date", end);
         item.put("cycle_type", "DAILY");

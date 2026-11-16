@@ -36,6 +36,14 @@ public class Medication {
     @Column(name = "storage_location")
     private String storageLocation;
 
+    // 시니어 복용 화면의 "2정", "1포". 숫자가 아닌 단위 표현이라 문자열
+    @Column(name = "dose_amount", length = 20)
+    private String doseAmount;
+
+    // 시니어 약 찾기 화면의 "파란색 원기둥". 약 판독 프롬프트 힌트로도 사용
+    @Column(length = 50)
+    private String appearance;
+
     @Column(name = "intake_reason")
     private String intakeReason;
 
@@ -63,7 +71,8 @@ public class Medication {
 
     @Builder
     public Medication(Long seniorProfileId, String drugName, String customDrugName, String imageUrl,
-                      String effect, String storageLocation, String intakeReason, String frequency,
+                      String effect, String storageLocation, String doseAmount, String appearance,
+                      String intakeReason, String frequency,
                       String cycleType, boolean notifyOnMiss, LocalDate startDate, LocalDate endDate) {
         this.seniorProfileId = seniorProfileId;
         this.drugName = drugName;
@@ -71,6 +80,8 @@ public class Medication {
         this.imageUrl = imageUrl;
         this.effect = effect;
         this.storageLocation = storageLocation;
+        this.doseAmount = doseAmount;
+        this.appearance = appearance;
         this.intakeReason = intakeReason;
         this.frequency = frequency;
         this.cycleType = cycleType;
@@ -80,7 +91,17 @@ public class Medication {
     }
 
     public void update(String customDrugName, String frequency, String effect, String imageUrl,
-                       boolean notifyOnMiss, String storageLocation, String intakeReason) {
+                       boolean notifyOnMiss, String storageLocation, String doseAmount, String appearance,
+                       String intakeReason) {
+
+        // 빈 문자열은 비우기, null은 유지
+        if (doseAmount != null) {
+            this.doseAmount = doseAmount.isEmpty() ? null : doseAmount;
+        }
+
+        if (appearance != null) {
+            this.appearance = appearance.isEmpty() ? null : appearance;
+        }
 
         if (customDrugName != null) {
             this.customDrugName = customDrugName;
