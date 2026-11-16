@@ -1,0 +1,25 @@
+services:
+  app:
+    image: yulmoo/ttareureung-app:latest
+    container_name: ttareureung-app
+    env_file:
+      - .env.prod
+    ports:
+      - "80:8080"
+    depends_on:
+      - ttareureung-mysql
+    restart: unless-stopped
+
+  ttareureung-mysql:
+    image: mysql:8.0.43
+    container_name: ttareureung-mysql
+    env_file:
+      - .env.prod
+    command: [
+      "--default-authentication-plugin=caching_sha2_password",
+      "--character-set-server=utf8mb4",
+      "--collation-server=utf8mb4_unicode_ci"
+    ]
+    volumes:
+      - ./_vol/mysql:/var/lib/mysql
+    restart: unless-stopped
