@@ -4,5 +4,6 @@ spring:
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
   jpa:
-    hibernate.ddl-auto: validate
+    # 마이그레이션 도구 없이 운영 DB를 빈 상태에서 시작하므로 테이블 자동 생성. Flyway 도입 시 validate로 전환
+    hibernate.ddl-auto: update
     properties.hibernate.jdbc.time_zone: UTC 
