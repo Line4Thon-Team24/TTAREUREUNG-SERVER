@@ -54,6 +54,10 @@ public abstract class ApiTestSupport {
     protected void cleanUpCreatedData() {
         for (Long id : accountIds) {
             jdbcTemplate.update("""
+                    DELETE ga FROM guardian_alerts ga
+                    JOIN profiles p ON ga.senior_profile_id = p.id
+                    WHERE p.account_id = ?""", id);
+            jdbcTemplate.update("""
                     DELETE mr FROM medication_recognitions mr
                     JOIN dose_sessions ds ON mr.dose_session_id = ds.id
                     JOIN profiles p ON ds.senior_profile_id = p.id
