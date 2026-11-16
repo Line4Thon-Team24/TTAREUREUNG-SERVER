@@ -1,0 +1,30 @@
+services:
+  app:
+    image: ttareureung-app:local
+    container_name: ttareureung-app-dev
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+    depends_on:
+      - ttareureung-mysql
+    restart: unless-stopped
+
+  ttareureung-mysql:
+    image: mysql:8.0.43
+    container_name: ttareureung-mysql-dev
+    environment:
+      MYSQL_ROOT_PASSWORD: ttareureung_root
+      MYSQL_DATABASE: ttareureung_db
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      TZ: Asia/Seoul
+    command: [
+      "--default-authentication-plugin=caching_sha2_password",
+      "--character-set-server=utf8mb4",
+      "--collation-server=utf8mb4_unicode_ci"
+    ]
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./_vol/mysql:/var/lib/mysql
