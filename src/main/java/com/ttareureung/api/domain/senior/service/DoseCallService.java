@@ -13,6 +13,7 @@ import com.ttareureung.api.domain.senior.dto.NoAnswerResponse;
 import com.ttareureung.api.domain.senior.dto.SessionCallResponse;
 import com.ttareureung.api.domain.senior.entity.DoseSession;
 import com.ttareureung.api.domain.senior.exception.SeniorErrorCode;
+import com.ttareureung.api.domain.senior.repository.DoseSessionRepository;
 import com.ttareureung.api.global.exception.CustomException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -40,20 +41,25 @@ public class DoseCallService {
     private final ProfileAccessChecker accessChecker;
     private final SeniorAccessValidator seniorAccess;
     private final MedicationLogRepository logs;
+    private final DoseSessionRepository sessions;
     private final DoseSessionFinder finder;
     private final DoseScheduleService scheduleService;
     private final DoseTimeService doseTimeService;
+    private final DoseSessionOutcome outcome;
     private final Clock clock;
 
     public DoseCallService(ProfileAccessChecker accessChecker, SeniorAccessValidator seniorAccess,
-                           MedicationLogRepository logs, DoseSessionFinder finder,
-                           DoseScheduleService scheduleService, DoseTimeService doseTimeService, Clock clock) {
+                           MedicationLogRepository logs, DoseSessionRepository sessions, DoseSessionFinder finder,
+                           DoseScheduleService scheduleService, DoseTimeService doseTimeService,
+                           DoseSessionOutcome outcome, Clock clock) {
         this.accessChecker = accessChecker;
         this.seniorAccess = seniorAccess;
         this.logs = logs;
+        this.sessions = sessions;
         this.finder = finder;
         this.scheduleService = scheduleService;
         this.doseTimeService = doseTimeService;
+        this.outcome = outcome;
         this.clock = clock;
     }
 
@@ -105,12 +111,19 @@ public class DoseCallService {
         }
         session.recordNoAnswer(now(), RETRY_MINUTES, MAX_CALL_ATTEMPTS);
         if (session.getStatus().isFinished()) {
-            // 끝내 못 받은 회차의 약은 미복용. 일정 연장·보호자 알림은 회차 종료 기능에서 처리
-            finder.logsOf(session).stream()
-                    .filter(l -> l.getStatus() == MedicationStatus.PENDING)
-                    .forEach(l -> l.changeStatus(MedicationStatus.MISSED));
+            // 끝내 못 받은 회차: 약 전부 미복용, 하루 연장, 보호자 알림
+            outcome.missRemaining(session, finder.logsOf(session));
         }
         return new NoAnswerResponse(session.getId(), session.getStatus(), session.getCallAttempts(), session.getNextCallAt());
+    }
+
+    // 결과 화면 "다음 알림 전화" 계산용. 회차 종료 트랜잭션 안에서 호출
+    public NextCallInfo nextCallAfter(DoseSession current) {
+        Long seniorId = current.getSenior().getId();
+        LocalDate today = current.getTargetDate();
+        Map<MealTimeSlot, DoseSession> todays = new EnumMap<>(MealTimeSlot.class);
+        sessions.findAllBySeniorIdAndTargetDate(seniorId, today).forEach(s -> todays.put(s.getTimeSlot(), s));
+        return nextCall(seniorId, today, todays, logsBySlot(seniorId, today), doseTimeService.effectiveTimes(seniorId), current);
     }
 
     private SessionCallResponse toCallResponse(DoseSession session, List<MedicationLog> slotLogs) {
@@ -140,7 +153,7 @@ public class DoseCallService {
                 continue;
             }
             if (!afterCurrent) {
-                afterCurrent = session == current;
+                afterCurrent = session.getId().equals(current.getId());
                 continue;
             }
             if (!session.getStatus().isFinished()) {

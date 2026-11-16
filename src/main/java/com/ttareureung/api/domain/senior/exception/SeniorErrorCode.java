@@ -62,6 +62,13 @@ public enum SeniorErrorCode implements ErrorCode {
             HttpStatus.PAYLOAD_TOO_LARGE,
             "SENIOR_009",
             "사진은 5MB 이하여야 합니다."
+    ),
+
+    // 다른 계정 시니어의 알림도 404
+    ALERT_NOT_FOUND(
+            HttpStatus.NOT_FOUND,
+            "SENIOR_010",
+            "알림을 찾을 수 없습니다."
     );
 
     private final HttpStatus status;

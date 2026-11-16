@@ -120,18 +120,24 @@ public class DoseSession extends BaseTimeEntity {
         }
     }
 
-    // 미응답 횟수 누적. 한도 도달 시 미복용 확정, 아니면 재전화 예약
+    // 전화 미응답 또는 받고도 하나도 안 먹은 경우 공용. 한도 도달 시 미복용 확정, 아니면 재전화 대기로 복귀
     public void recordNoAnswer(LocalDateTime now, int retryMinutes, int maxAttempts) {
         callAttempts++;
         if (callAttempts >= maxAttempts) {
             markMissed(now);
         } else {
+            status = DoseSessionStatus.SCHEDULED;
             nextCallAt = now.plusMinutes(retryMinutes);
         }
     }
 
     public void markMissed(LocalDateTime now) {
-        status = DoseSessionStatus.MISSED;
+        finish(DoseSessionStatus.MISSED, now);
+    }
+
+    // 결과 화면 진입. COMPLETED / PARTIAL / MISSED만 허용
+    public void finish(DoseSessionStatus result, LocalDateTime now) {
+        status = result;
         finishedAt = now;
         nextCallAt = null;
     }

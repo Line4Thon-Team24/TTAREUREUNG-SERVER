@@ -4,6 +4,7 @@ import com.ttareureung.api.domain.medication.entity.MealTimeSlot;
 import com.ttareureung.api.domain.medication.entity.Medication;
 import com.ttareureung.api.domain.senior.entity.RecognitionResult;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -51,6 +52,38 @@ public final class VoiceText {
     // 복용 처리 후. 남은 약이 있으면 다음 약 찾기로 유도
     public static String afterIntake(int remaining) {
         return remaining > 0 ? "잘 드셨어요. 다음 약을 찾아볼까요?" : "모든 약을 다 드셨어요.";
+    }
+
+    public static String completed(LocalDateTime nextCall) {
+        return nextCall == null
+                ? "모든 약을 다 드셨어요. 오늘 약은 끝났어요."
+                : "모든 약을 다 드셨어요. 다음 전화는 " + koreanTime(nextCall) + "이에요.";
+    }
+
+    public static String partial(int missedCount) {
+        return "못 드신 약 " + missedCount + "개는 일정이 하루 늘어났어요.";
+    }
+
+    public static String retryLater(int minutes) {
+        return "약을 안 드셨어요. " + minutes + "분 뒤에 다시 전화할게요. 보호자께도 알려 드렸어요.";
+    }
+
+    public static String missed() {
+        return "오늘은 약을 못 드셨어요. 보호자께 알려 드렸어요.";
+    }
+
+    public static String helpRequested() {
+        return "보호자께 도움을 요청했어요. 잠시만 기다려 주세요.";
+    }
+
+    // "오후 6시", "오전 11시 30분". 보호자 알림 문구와 TTS 공용
+    public static String koreanTime(LocalDateTime time) {
+        int hour = time.getHour();
+        String period = hour < 12 ? "오전" : "오후";
+        int h = hour % 12 == 0 ? 12 : hour % 12;
+        return time.getMinute() == 0
+                ? period + " " + h + "시"
+                : period + " " + h + "시 " + time.getMinute() + "분";
     }
 
     private static String ordinal(int order) {
