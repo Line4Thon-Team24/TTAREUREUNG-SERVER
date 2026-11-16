@@ -142,7 +142,7 @@ public abstract class ApiTestSupport {
                                       String start, String end, String... slots) throws Exception {
         var body = medicationItem(drugName, start, end, slots);
         body.put("senior_profile_id", seniorId);
-        return idOf(postJson(bearer(accountId), "/api/medications", body)
+        return idOf(postJson(bearer(accountId), "/api/v1/medications", body)
                 .andExpect(status().isCreated()).andReturn(), "medication_id");
     }
 
@@ -153,7 +153,7 @@ public abstract class ApiTestSupport {
     }
 
     protected String scheduleUrl(long seniorId, String date) {
-        return "/api/medications/schedule?senior_id=" + seniorId + "&date=" + date;
+        return "/api/v1/medications/schedule?senior_id=" + seniorId + "&date=" + date;
     }
 
     // HTTP / DB

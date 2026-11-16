@@ -22,7 +22,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/medications")
+@RequestMapping("/api/v1/medications")
 @Tag(name = "Medication", description = "약 복용 일정")
 public class MedicationController {
 

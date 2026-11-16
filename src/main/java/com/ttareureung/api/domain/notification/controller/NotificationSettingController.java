@@ -17,7 +17,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/notification-settings")
+@RequestMapping("/api/v1/notification-settings")
 @Tag(name = "NotificationSetting", description = "프로필 알림 설정")
 public class NotificationSettingController {
 

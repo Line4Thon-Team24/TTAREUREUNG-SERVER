@@ -89,13 +89,13 @@ class MedicationRecognitionApiTests extends ApiTestSupport {
 
     @Test
     void requiresAccessToken() throws Exception {
-        mockMvc.perform(multipart("/api/medications/recognition")
+        mockMvc.perform(multipart("/api/v1/medications/recognition")
                         .file(new MockMultipartFile("file", "rx", "image/jpeg", new byte[]{1})))
                 .andExpect(status().isUnauthorized());
     }
 
     private ResultActions upload(String token, String contentType, byte[] content) throws Exception {
-        return mockMvc.perform(multipart("/api/medications/recognition")
+        return mockMvc.perform(multipart("/api/v1/medications/recognition")
                 .file(new MockMultipartFile("file", "rx", contentType, content))
                 .header(HttpHeaders.AUTHORIZATION, token));
     }

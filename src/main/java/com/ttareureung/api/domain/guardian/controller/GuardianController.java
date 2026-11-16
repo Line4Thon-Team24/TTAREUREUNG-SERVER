@@ -17,7 +17,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/guardians")
+@RequestMapping("/api/v1/guardians")
 @Tag(name = "Guardian", description = "공동 보호자 관리")
 public class GuardianController {
 
