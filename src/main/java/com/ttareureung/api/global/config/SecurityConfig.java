@@ -78,6 +78,8 @@ public class SecurityConfig {
                                 "/api/v1/auth/refresh",
                                 "/api/v1/auth/logout"
                         ).permitAll()
+                        // 디스크 저장 사진 조회. <img src>로 열어야 해서 토큰 대신 링크의 서명·만료로 보호
+                        .requestMatchers(HttpMethod.GET, "/api/v1/files/local/**").permitAll()
 
                         .anyRequest().authenticated()
                 )

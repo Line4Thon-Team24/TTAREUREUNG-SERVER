@@ -1,5 +1,6 @@
 package com.ttareureung.api.domain.senior.service;
 
+import com.ttareureung.api.domain.file.service.FileUrlResolver;
 import com.ttareureung.api.domain.guardian.service.SeniorAccessValidator;
 import com.ttareureung.api.domain.medication.entity.MealTimeSlot;
 import com.ttareureung.api.domain.medication.entity.MedicationLog;
@@ -46,12 +47,13 @@ public class DoseCallService {
     private final DoseScheduleService scheduleService;
     private final DoseTimeService doseTimeService;
     private final DoseSessionOutcome outcome;
+    private final FileUrlResolver urls;
     private final Clock clock;
 
     public DoseCallService(ProfileAccessChecker accessChecker, SeniorAccessValidator seniorAccess,
                            MedicationLogRepository logs, DoseSessionRepository sessions, DoseSessionFinder finder,
                            DoseScheduleService scheduleService, DoseTimeService doseTimeService,
-                           DoseSessionOutcome outcome, Clock clock) {
+                           DoseSessionOutcome outcome, FileUrlResolver urls, Clock clock) {
         this.accessChecker = accessChecker;
         this.seniorAccess = seniorAccess;
         this.logs = logs;
@@ -60,6 +62,7 @@ public class DoseCallService {
         this.scheduleService = scheduleService;
         this.doseTimeService = doseTimeService;
         this.outcome = outcome;
+        this.urls = urls;
         this.clock = clock;
     }
 
@@ -134,7 +137,7 @@ public class DoseCallService {
             if (log.getStatus() == MedicationStatus.TAKEN) {
                 continue;
             }
-            guides.add(MedicationGuide.of(order, log.getMedication()));
+            guides.add(MedicationGuide.of(order, log.getMedication(), urls.resolve(log.getMedication().getImageUrl())));
             order++;
         }
         return new SessionCallResponse(session.getId(), session.getTimeSlot(), session.getTimeSlot().getLabel(),
