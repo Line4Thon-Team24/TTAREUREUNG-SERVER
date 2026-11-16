@@ -2,7 +2,6 @@ package com.ttareureung.api.domain.senior.service;
 
 import com.ttareureung.api.domain.guardian.service.SeniorAccessValidator;
 import com.ttareureung.api.domain.medication.entity.MealTimeSlot;
-import com.ttareureung.api.domain.medication.entity.Medication;
 import com.ttareureung.api.domain.medication.entity.MedicationLog;
 import com.ttareureung.api.domain.medication.entity.MedicationStatus;
 import com.ttareureung.api.domain.medication.repository.MedicationLogRepository;
@@ -14,7 +13,6 @@ import com.ttareureung.api.domain.senior.dto.NoAnswerResponse;
 import com.ttareureung.api.domain.senior.dto.SessionCallResponse;
 import com.ttareureung.api.domain.senior.entity.DoseSession;
 import com.ttareureung.api.domain.senior.exception.SeniorErrorCode;
-import com.ttareureung.api.domain.senior.repository.DoseSessionRepository;
 import com.ttareureung.api.global.exception.CustomException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -42,18 +40,18 @@ public class DoseCallService {
     private final ProfileAccessChecker accessChecker;
     private final SeniorAccessValidator seniorAccess;
     private final MedicationLogRepository logs;
-    private final DoseSessionRepository sessions;
+    private final DoseSessionFinder finder;
     private final DoseScheduleService scheduleService;
     private final DoseTimeService doseTimeService;
     private final Clock clock;
 
     public DoseCallService(ProfileAccessChecker accessChecker, SeniorAccessValidator seniorAccess,
-                           MedicationLogRepository logs, DoseSessionRepository sessions,
+                           MedicationLogRepository logs, DoseSessionFinder finder,
                            DoseScheduleService scheduleService, DoseTimeService doseTimeService, Clock clock) {
         this.accessChecker = accessChecker;
         this.seniorAccess = seniorAccess;
         this.logs = logs;
-        this.sessions = sessions;
+        this.finder = finder;
         this.scheduleService = scheduleService;
         this.doseTimeService = doseTimeService;
         this.clock = clock;
@@ -87,18 +85,18 @@ public class DoseCallService {
     @Transactional
     public SessionCallResponse answer(Long accountId, Long sessionId) {
         accessChecker.activeAccount(accountId);
-        DoseSession session = accessibleSession(accountId, sessionId);
+        DoseSession session = finder.lockedAccessible(accountId, sessionId);
         if (session.getStatus().isFinished()) {
             throw new CustomException(SeniorErrorCode.SESSION_FINISHED);
         }
         session.answer(now());
-        return toCallResponse(session, logsOf(session));
+        return toCallResponse(session, finder.logsOf(session));
     }
 
     @Transactional
     public NoAnswerResponse noAnswer(Long accountId, Long sessionId) {
         accessChecker.activeAccount(accountId);
-        DoseSession session = accessibleSession(accountId, sessionId);
+        DoseSession session = finder.lockedAccessible(accountId, sessionId);
         if (session.getStatus().isFinished()) {
             throw new CustomException(SeniorErrorCode.SESSION_FINISHED);
         }
@@ -108,21 +106,11 @@ public class DoseCallService {
         session.recordNoAnswer(now(), RETRY_MINUTES, MAX_CALL_ATTEMPTS);
         if (session.getStatus().isFinished()) {
             // 끝내 못 받은 회차의 약은 미복용. 일정 연장·보호자 알림은 회차 종료 기능에서 처리
-            logsOf(session).stream()
+            finder.logsOf(session).stream()
                     .filter(l -> l.getStatus() == MedicationStatus.PENDING)
                     .forEach(l -> l.changeStatus(MedicationStatus.MISSED));
         }
         return new NoAnswerResponse(session.getId(), session.getStatus(), session.getCallAttempts(), session.getNextCallAt());
-    }
-
-    // 없는 회차와 권한 없는 회차 모두 404
-    private DoseSession accessibleSession(Long accountId, Long sessionId) {
-        DoseSession session = sessions.findByIdForUpdate(sessionId)
-                .orElseThrow(() -> new CustomException(SeniorErrorCode.SESSION_NOT_FOUND));
-        if (!seniorAccess.hasAccess(accountId, session.getSenior().getId())) {
-            throw new CustomException(SeniorErrorCode.SESSION_NOT_FOUND);
-        }
-        return session;
     }
 
     private SessionCallResponse toCallResponse(DoseSession session, List<MedicationLog> slotLogs) {
@@ -133,9 +121,7 @@ public class DoseCallService {
             if (log.getStatus() == MedicationStatus.TAKEN) {
                 continue;
             }
-            Medication m = log.getMedication();
-            guides.add(new MedicationGuide(order, m.getId(), m.getDisplayName(), m.getImageUrl(),
-                    m.getAppearance(), m.getStorageLocation(), m.getDoseAmount(), VoiceText.findMedication(order, m)));
+            guides.add(MedicationGuide.of(order, log.getMedication()));
             order++;
         }
         return new SessionCallResponse(session.getId(), session.getTimeSlot(), session.getTimeSlot().getLabel(),
@@ -177,11 +163,6 @@ public class DoseCallService {
             result.computeIfAbsent(log.getMealTimeSlot(), k -> new ArrayList<>()).add(log);
         }
         return result;
-    }
-
-    private List<MedicationLog> logsOf(DoseSession session) {
-        return logsBySlot(session.getSenior().getId(), session.getTargetDate())
-                .getOrDefault(session.getTimeSlot(), List.of());
     }
 
     private static List<String> names(List<MedicationLog> slotLogs) {
