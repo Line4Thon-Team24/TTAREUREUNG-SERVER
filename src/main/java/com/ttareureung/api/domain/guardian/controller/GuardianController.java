@@ -41,7 +41,7 @@ public class GuardianController {
         return ResponseEntity.ok(BaseResponse.successWithoutData());
     }
 
-    @Operation(summary = "공동 보호자 초대", description = "전화번호로 초대 문자를 보냅니다. 이미 연결됐거나 초대 대기 중인 번호는 건너뜁니다.")
+    @Operation(summary = "공동 보호자 초대", description = "전화번호별 초대 링크를 만들어 돌려줍니다. 문자는 보내지 않으니 초대한 사람이 링크를 직접 전달하세요. 이미 연결된 번호는 건너뛰고, 대기 중인 초대는 같은 링크를 다시 돌려줍니다(newly_created=false).")
     @ApiResponse(responseCode = "200", description = "초대 완료")
     @ApiResponse(responseCode = "400", description = "입력값 오류 또는 시니어 프로필이 아님 (MEDICATION_003)", content = @Content(schema = @Schema(implementation = BaseResponse.class)))
     @ApiResponse(responseCode = "403", description = "비활성 계정 (AUTH_005)", content = @Content(schema = @Schema(implementation = BaseResponse.class)))
@@ -52,7 +52,7 @@ public class GuardianController {
         return ResponseEntity.ok(BaseResponse.success(invitationService.invite(accountId(jwt), request)));
     }
 
-    @Operation(summary = "초대 수락", description = "초대 문자의 토큰으로 내 보호자 프로필을 시니어에 연결합니다.")
+    @Operation(summary = "초대 수락", description = "초대 링크의 토큰으로 내 보호자 프로필을 시니어에 연결합니다. 다른 가족 계정이어도 되고, 전화번호 검증은 하지 않습니다. 토큰은 7일 뒤 만료됩니다.")
     @ApiResponse(responseCode = "200", description = "연결 성공")
     @ApiResponse(responseCode = "400", description = "입력값 오류 또는 보호자 프로필이 아님 (GUARDIAN_004)", content = @Content(schema = @Schema(implementation = BaseResponse.class)))
     @ApiResponse(responseCode = "403", description = "비활성 계정 (AUTH_005)", content = @Content(schema = @Schema(implementation = BaseResponse.class)))

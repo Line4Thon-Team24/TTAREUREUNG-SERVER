@@ -36,8 +36,12 @@ public interface GuardianSeniorRepository extends JpaRepository<GuardianSenior, 
 
     boolean existsByGuardianIdAndSeniorId(Long guardianId, Long seniorId);
 
-    // 보호자 쪽 계정 기준으로 소유권 확인 (연결 생성 시 두 프로필 계정 일치 검증 완료)
-    @Query("select gs from GuardianSenior gs where gs.id = :id and gs.guardian.account.id = :accountId")
+    // 초대로 연결된 외부 보호자는 보호자·시니어 계정이 달라 양쪽 모두 해제 가능해야 함
+    @Query("""
+            select gs from GuardianSenior gs
+            where gs.id = :id
+              and (gs.guardian.account.id = :accountId or gs.senior.account.id = :accountId)
+            """)
     Optional<GuardianSenior> findByIdAndAccountId(Long id, Long accountId);
 
     @Modifying(flushAutomatically = true, clearAutomatically = true)

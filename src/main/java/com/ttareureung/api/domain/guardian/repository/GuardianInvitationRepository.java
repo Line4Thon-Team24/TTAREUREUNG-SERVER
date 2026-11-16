@@ -20,6 +20,14 @@ public interface GuardianInvitationRepository extends JpaRepository<GuardianInvi
     );
     Optional<GuardianInvitation> findByToken(String token);
 
+    // 같은 번호에 대기 중인 초대가 있으면 새로 만들지 않고 그 링크를 다시 돌려주기 위한 조회
+    Optional<GuardianInvitation> findFirstBySeniorProfileIdAndPhoneNumberAndStatusAndCreatedAtAfterOrderByIdDesc(
+            Long seniorProfileId,
+            String phoneNumber,
+            InvitationStatus status,
+            LocalDateTime createdAtAfter
+    );
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT i FROM GuardianInvitation i WHERE i.token = :token")
     Optional<GuardianInvitation> findByTokenWithLock(@Param("token") String token);
