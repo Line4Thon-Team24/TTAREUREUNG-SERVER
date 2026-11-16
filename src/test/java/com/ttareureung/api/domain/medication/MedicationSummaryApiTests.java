@@ -85,7 +85,7 @@ class MedicationSummaryApiTests extends ApiTestSupport {
         registerMedication(f.accountId(), f.seniorId(), "약B", today.minusDays(1).toString(), today.toString(), "LUNCH");
         registerMedication(f.accountId(), f.seniorId(), "종료된 약", today.minusDays(5).toString(), today.minusDays(3).toString(), "DINNER");
 
-        getAs(bearer(f.accountId()), "/api/medications/summary?senior_ids=" + f.seniorId() + "," + senior2)
+        getAs(bearer(f.accountId()), "/api/v1/medications/summary?senior_ids=" + f.seniorId() + "," + senior2)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.seniors.length()").value(2))
                 .andExpect(jsonPath("$.data.seniors[0].senior_id").value(f.seniorId()))
@@ -102,22 +102,22 @@ class MedicationSummaryApiTests extends ApiTestSupport {
         Family other = newFamily();
         String token = bearer(mine.accountId());
 
-        getAs(token, "/api/medications/summary?senior_ids=" + mine.seniorId() + "," + other.seniorId())
+        getAs(token, "/api/v1/medications/summary?senior_ids=" + mine.seniorId() + "," + other.seniorId())
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("PROFILE_002"));
         String tooMany = LongStream.rangeClosed(1, 51).mapToObj(String::valueOf).collect(Collectors.joining(","));
-        getAs(token, "/api/medications/summary?senior_ids=" + tooMany)
+        getAs(token, "/api/v1/medications/summary?senior_ids=" + tooMany)
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("COMMON_400"));
-        mockMvc.perform(get("/api/medications/summary?senior_ids=1")).andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/v1/medications/summary?senior_ids=1")).andExpect(status().isUnauthorized());
     }
 
     private void setStatus(String token, long medicationId, String slot, String date, String status) throws Exception {
-        patchJson(token, "/api/medications/logs/" + logId(medicationId, slot, date), Map.of("status", status))
+        patchJson(token, "/api/v1/medications/logs/" + logId(medicationId, slot, date), Map.of("status", status))
                 .andExpect(status().isOk());
     }
 
     private String calendarUrl(long seniorId, String month) {
-        return "/api/medications/calendar?senior_id=" + seniorId + "&month=" + month;
+        return "/api/v1/medications/calendar?senior_id=" + seniorId + "&month=" + month;
     }
 }

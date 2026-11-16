@@ -104,7 +104,7 @@ class MedicationManageApiTests extends ApiTestSupport {
             "{" + NO_STORAGE + "}"
     })
     void rejectsInvalidRegisterBody(String body) throws Exception {
-        postJson(bearer(newAccount()), "/api/medications", body)
+        postJson(bearer(newAccount()), "/api/v1/medications", body)
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("COMMON_400"));
     }
@@ -118,7 +118,7 @@ class MedicationManageApiTests extends ApiTestSupport {
         registerMedication(other.accountId(), other.seniorId(), "남의 약", D1, D1, "MORNING");
         String token = bearer(mine.accountId());
 
-        getAs(token, "/api/medications?senior_id=" + mine.seniorId())
+        getAs(token, "/api/v1/medications?senior_id=" + mine.seniorId())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.medications.length()").value(2))
                 .andExpect(jsonPath("$.data.medications[0].medication_id").isNumber())
@@ -126,7 +126,7 @@ class MedicationManageApiTests extends ApiTestSupport {
                 .andExpect(jsonPath("$.data.medications[0].meal_time_slots.length()").value(1))
                 .andExpect(jsonPath("$.data.medications[0].created_at").isNotEmpty());
 
-        getAs(token, "/api/medications?senior_id=" + other.seniorId())
+        getAs(token, "/api/v1/medications?senior_id=" + other.seniorId())
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("PROFILE_002"));
     }
@@ -136,7 +136,7 @@ class MedicationManageApiTests extends ApiTestSupport {
         Family f = newFamily();
         long medicationId = registerMedication(f.accountId(), f.seniorId(), "아미노부프로펜", D1, "2026-11-05", "MORNING");
         String token = bearer(f.accountId());
-        String url = "/api/medications/" + medicationId;
+        String url = "/api/v1/medications/" + medicationId;
 
         putJson(token, url, Map.of("custom_drug_name", "허리 아플 때 먹는 약", "frequency", "하루 2회, 식후 30분",
                 "storage_location", "약 서랍 첫째 칸", "intake_reason", "무릎 관절 통증 완화"))
@@ -173,10 +173,10 @@ class MedicationManageApiTests extends ApiTestSupport {
         long medicationId = registerMedication(f.accountId(), f.seniorId(), "혈압약", D1, D1, "MORNING");
         String stranger = bearer(newAccount());
 
-        putJson(stranger, "/api/medications/" + medicationId, Map.of("frequency", "바뀜"))
+        putJson(stranger, "/api/v1/medications/" + medicationId, Map.of("frequency", "바뀜"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("MEDICATION_001"));
-        deleteAs(stranger, "/api/medications/" + medicationId)
+        deleteAs(stranger, "/api/v1/medications/" + medicationId)
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("MEDICATION_001"));
         assertThat(jdbcTemplate.queryForObject("SELECT frequency FROM medication WHERE id = ?", String.class, medicationId))
@@ -188,7 +188,7 @@ class MedicationManageApiTests extends ApiTestSupport {
         Family f = newFamily();
         long medicationId = registerMedication(f.accountId(), f.seniorId(), "혈압약", D1, "2026-11-06", "MORNING", "LUNCH");
 
-        deleteAs(bearer(f.accountId()), "/api/medications/" + medicationId)
+        deleteAs(bearer(f.accountId()), "/api/v1/medications/" + medicationId)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true));
 
@@ -205,7 +205,7 @@ class MedicationManageApiTests extends ApiTestSupport {
                 medicationItem("약A", D1, D1, "MORNING"),
                 medicationItem("약B", D1, "2026-11-05", "MORNING", "DINNER")));
 
-        postJson(bearer(f.accountId()), "/api/medications/bulk", body)
+        postJson(bearer(f.accountId()), "/api/v1/medications/bulk", body)
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.data.medication_ids.length()").value(2));
 
@@ -224,7 +224,7 @@ class MedicationManageApiTests extends ApiTestSupport {
                 medicationItem("정상", D1, D1, "MORNING"),
                 medicationItem("기간 오류", "2026-11-06", "2026-11-04", "MORNING")));
 
-        postJson(bearer(f.accountId()), "/api/medications/bulk", body)
+        postJson(bearer(f.accountId()), "/api/v1/medications/bulk", body)
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("MEDICATION_004"));
 
@@ -236,11 +236,11 @@ class MedicationManageApiTests extends ApiTestSupport {
         Family f = newFamily();
         String token = bearer(f.accountId());
 
-        postJson(bearer(f.accountId()), "/api/medications/bulk",
+        postJson(bearer(f.accountId()), "/api/v1/medications/bulk",
                 Map.of("senior_profile_id", f.seniorId(), "medications", List.of()))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("COMMON_400"));
-        postJson(token, "/api/medications/bulk",
+        postJson(token, "/api/v1/medications/bulk",
                 Map.of("senior_profile_id", f.seniorId(),
                         "medications", Collections.nCopies(21, medicationItem("약", D1, D1, "MORNING"))))
                 .andExpect(status().isBadRequest())
@@ -255,7 +255,7 @@ class MedicationManageApiTests extends ApiTestSupport {
         long m2 = registerMedication(f.accountId(), f.seniorId(), "약B", D1, D1, "LUNCH");
         long m3 = registerMedication(f.accountId(), f.seniorId(), "약C", D1, D1, "DINNER");
 
-        deleteAs(bearer(f.accountId()), "/api/medications?medication_ids=" + m1 + "," + m2)
+        deleteAs(bearer(f.accountId()), "/api/v1/medications?medication_ids=" + m1 + "," + m2)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.deleted_count").value(2));
 
@@ -271,12 +271,12 @@ class MedicationManageApiTests extends ApiTestSupport {
         long myMed = registerMedication(mine.accountId(), mine.seniorId(), "내 약", D1, D1, "MORNING");
         long otherMed = registerMedication(other.accountId(), other.seniorId(), "남의 약", D1, D1, "MORNING");
 
-        deleteAs(bearer(mine.accountId()), "/api/medications?medication_ids=" + myMed + "," + otherMed)
+        deleteAs(bearer(mine.accountId()), "/api/v1/medications?medication_ids=" + myMed + "," + otherMed)
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("MEDICATION_001"));
         assertThat(count("SELECT COUNT(*) FROM medication WHERE id IN (?, ?)", myMed, otherMed)).isEqualTo(2);
 
-        deleteAs(bearer(mine.accountId()), "/api/medications").andExpect(status().isBadRequest());
+        deleteAs(bearer(mine.accountId()), "/api/v1/medications").andExpect(status().isBadRequest());
     }
 
     @Test
@@ -296,7 +296,7 @@ class MedicationManageApiTests extends ApiTestSupport {
 
     private ResultActions registerAs(String token, long seniorId, Map<String, Object> item) throws Exception {
         item.put("senior_profile_id", seniorId);
-        return postJson(token, "/api/medications", item);
+        return postJson(token, "/api/v1/medications", item);
     }
 
     @Test
@@ -309,9 +309,9 @@ class MedicationManageApiTests extends ApiTestSupport {
         registerAs(token, f.seniorId(), medicationItem("약", D1, D1, "MORNING"))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("AUTH_005"));
-        putJson(token, "/api/medications/" + medicationId, Map.of("frequency", "바뀜"))
+        putJson(token, "/api/v1/medications/" + medicationId, Map.of("frequency", "바뀜"))
                 .andExpect(status().isForbidden());
-        deleteAs(token, "/api/medications/" + medicationId).andExpect(status().isForbidden());
+        deleteAs(token, "/api/v1/medications/" + medicationId).andExpect(status().isForbidden());
         assertThat(count("SELECT COUNT(*) FROM medication WHERE id = ?", medicationId)).isEqualTo(1);
     }
 }

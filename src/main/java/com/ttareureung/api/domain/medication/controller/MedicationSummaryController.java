@@ -25,7 +25,7 @@ import java.time.YearMonth;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/medications")
+@RequestMapping("/api/v1/medications")
 @Tag(name = "MedicationSummary", description = "복약 요약·캘린더")
 public class MedicationSummaryController {
 

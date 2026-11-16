@@ -49,10 +49,10 @@ class GuardianApiTests extends ApiTestSupport {
         changePrimary(bearer(newAccount()), f.seniorId(), f.guardianId())
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("PROFILE_002"));
-        patchJson(token, "/api/guardians/primary", "{}")
+        patchJson(token, "/api/v1/guardians/primary", "{}")
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("COMMON_400"));
-        mockMvc.perform(patch("/api/guardians/primary").contentType(MediaType.APPLICATION_JSON).content("{}"))
+        mockMvc.perform(patch("/api/v1/guardians/primary").contentType(MediaType.APPLICATION_JSON).content("{}"))
                 .andExpect(status().isUnauthorized());
     }
 
@@ -99,7 +99,7 @@ class GuardianApiTests extends ApiTestSupport {
                     + "\"01011110009\",\"01011110010\",\"01011110011\"]}"
     })
     void rejectsInvalidInvitationRequest(String body) throws Exception {
-        postJson(bearer(newAccount()), "/api/guardians/invitation", body)
+        postJson(bearer(newAccount()), "/api/v1/guardians/invitation", body)
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("COMMON_400"));
     }
@@ -114,7 +114,7 @@ class GuardianApiTests extends ApiTestSupport {
         invite(bearer(f.accountId()), f.guardianId(), "010-1234-5678")
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("MEDICATION_003"));
-        mockMvc.perform(post("/api/guardians/invitation").contentType(MediaType.APPLICATION_JSON)
+        mockMvc.perform(post("/api/v1/guardians/invitation").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"senior_profile_id\":1,\"phone_numbers\":[\"010-1234-5678\"]}"))
                 .andExpect(status().isUnauthorized());
         assertThat(count("SELECT COUNT(*) FROM guardian_invitations WHERE senior_profile_id = ?", f.seniorId())).isZero();
@@ -150,7 +150,7 @@ class GuardianApiTests extends ApiTestSupport {
         getAs(tokenB, scheduleUrl(f.seniorId(), D))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.time_slots.length()").value(1));
-        patchJson(tokenB, "/api/medications/logs/" + logId(medicationId, "MORNING", D), Map.of("status", "TAKEN"))
+        patchJson(tokenB, "/api/v1/medications/logs/" + logId(medicationId, "MORNING", D), Map.of("status", "TAKEN"))
                 .andExpect(status().isOk());
 
         getAs(bearer(newAccount()), scheduleUrl(f.seniorId(), D)).andExpect(status().isNotFound());
@@ -180,7 +180,7 @@ class GuardianApiTests extends ApiTestSupport {
         accept(tokenB, "unknown-token", guardianB)
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("GUARDIAN_002"));
-        postJson(tokenB, "/api/guardians/invitation/accept", Map.of("token", " ", "guardian_profile_id", guardianB))
+        postJson(tokenB, "/api/v1/guardians/invitation/accept", Map.of("token", " ", "guardian_profile_id", guardianB))
                 .andExpect(status().isBadRequest());
 
         accept(tokenB, first, guardianB).andExpect(status().isOk());
@@ -199,17 +199,17 @@ class GuardianApiTests extends ApiTestSupport {
     }
 
     private ResultActions changePrimary(String token, long seniorId, long guardianId) throws Exception {
-        return patchJson(token, "/api/guardians/primary",
+        return patchJson(token, "/api/v1/guardians/primary",
                 Map.of("senior_profile_id", seniorId, "guardian_id", guardianId));
     }
 
     private ResultActions invite(String token, long seniorId, String... phones) throws Exception {
-        return postJson(token, "/api/guardians/invitation",
+        return postJson(token, "/api/v1/guardians/invitation",
                 Map.of("senior_profile_id", seniorId, "phone_numbers", List.of(phones)));
     }
 
     private ResultActions accept(String token, String inviteToken, long guardianProfileId) throws Exception {
-        return postJson(token, "/api/guardians/invitation/accept",
+        return postJson(token, "/api/v1/guardians/invitation/accept",
                 Map.of("token", inviteToken, "guardian_profile_id", guardianProfileId));
     }
 

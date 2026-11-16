@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 @RestController
-@RequestMapping("/api/medications")
+@RequestMapping("/api/v1/medications")
 @RequiredArgsConstructor
 public class MedicationRecognitionController {
 

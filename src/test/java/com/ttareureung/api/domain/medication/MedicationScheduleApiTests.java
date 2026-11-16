@@ -79,7 +79,7 @@ class MedicationScheduleApiTests extends ApiTestSupport {
         Family f = newFamily();
         long medicationId = registerMedication(f.accountId(), f.seniorId(), "혈압약", D, D, "MORNING");
 
-        patchJson(bearer(f.accountId()), "/api/medications/logs/" + logId(medicationId, "MORNING", D), body)
+        patchJson(bearer(f.accountId()), "/api/v1/medications/logs/" + logId(medicationId, "MORNING", D), body)
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("COMMON_400"));
     }
@@ -113,13 +113,13 @@ class MedicationScheduleApiTests extends ApiTestSupport {
         mockMvc.perform(get(scheduleUrl(1, D)))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("COMMON_401"));
-        mockMvc.perform(patch("/api/medications/logs/1").contentType(MediaType.APPLICATION_JSON)
+        mockMvc.perform(patch("/api/v1/medications/logs/1").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"status\":\"TAKEN\"}"))
                 .andExpect(status().isUnauthorized());
     }
 
     private ResultActions patchStatus(String token, long logId, String status) throws Exception {
-        return patchJson(token, "/api/medications/logs/" + logId, Map.of("status", status));
+        return patchJson(token, "/api/v1/medications/logs/" + logId, Map.of("status", status));
     }
 
     private void assertSlotStatus(String token, long seniorId, String expected) throws Exception {

@@ -14,7 +14,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 class NotificationSettingApiTests extends ApiTestSupport {
 
-    private static final String URL = "/api/notification-settings";
+    private static final String URL = "/api/v1/notification-settings";
 
     @Test
     void returnsDefaultsWithoutCreatingRow() throws Exception {
