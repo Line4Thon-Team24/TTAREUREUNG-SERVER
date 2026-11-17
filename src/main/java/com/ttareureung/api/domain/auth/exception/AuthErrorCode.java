@@ -28,6 +28,12 @@ public enum AuthErrorCode implements ErrorCode {
             HttpStatus.UNAUTHORIZED,
             "AUTH_004",
             "유효하지 않은 인증 정보입니다."
+    ),
+
+    ACCOUNT_INACTIVE(
+            HttpStatus.FORBIDDEN,
+            "AUTH_005",
+            "비활성화된 계정입니다."
     );
 
     private final HttpStatus status;

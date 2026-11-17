@@ -11,7 +11,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest
+@WebMvcTest(controllers = HealthController.class, properties = "jwt.secret=health-test-secret-key-at-least-32-bytes")
 @Import(SecurityConfig.class)
 class HealthApiTests {
 
@@ -38,6 +38,6 @@ class HealthApiTests {
     @Test
     void protectedPathsRemainBlocked() throws Exception {
         mockMvc.perform(get("/api/v1/seniors"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 }
