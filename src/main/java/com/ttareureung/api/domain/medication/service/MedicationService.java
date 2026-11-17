@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -28,6 +29,7 @@ import java.util.stream.Collectors;
 public class MedicationService {
 
     private static final long MAX_PERIOD_DAYS = 366;  // 1년으로 가정
+    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
     private final MedicationLogRepository medicationLogRepository;
     private final MedicationRepository medicationRepository;
@@ -111,7 +113,7 @@ public class MedicationService {
                     medications.stream().map(Medication::getId).toList())) {
                 slots.computeIfAbsent((Long) row[0], k -> new ArrayList<>()).add((MealTimeSlot) row[1]);
             }
-            slots.values().forEach(Collections::sort); // 아침 점심 저녁
+            slots.values().forEach(Collections::sort); // 아침 점심 저녁 자기 전
         }
 
         List<MedicationListResponse.MedicationItem> items = medications.stream()
@@ -119,7 +121,10 @@ public class MedicationService {
                         m.getId(),
                         m.getDrugName(),
                         m.getCustomDrugName(),
+                        m.getCategory(),
                         fileUrlResolver.resolve(m.getImageUrl()),
+                        m.getPrescriptionFileName(),
+                        m.getRegistrationType(),
                         m.getEffect(),
                         m.getStorageLocation(),
                         m.getDoseAmount(),
@@ -127,6 +132,8 @@ public class MedicationService {
                         m.getIntakeReason(),
                         m.getFrequency(),
                         m.getCycleType() != null ? CycleType.valueOf(m.getCycleType()) : null,
+                        m.getIntervalDays(),
+                        m.getIntakeTiming(),
                         slots.getOrDefault(m.getId(), new ArrayList<>()),
                         m.isNotifyOnMiss(),
                         m.getStartDate(),
@@ -142,19 +149,50 @@ public class MedicationService {
     public MedicationUpdateResponse updateMedication(Long accountId, Long medicationId, MedicationUpdateRequest req) {
         accessChecker.activeAccount(accountId);
         Medication m = findOwnedMedication(accountId, medicationId);
+
+        // 일정 관련 새 값
+        LocalDate newStart = req.startDate() != null ? req.startDate() : m.getStartDate();
+        LocalDate newEnd = req.endDate() != null ? req.endDate() : m.getEndDate();
+        int newInterval = req.intervalDays() != null ? req.intervalDays() : m.getIntervalDays();
+        CycleType newCycle = req.cycleType() != null ? req.cycleType()
+                : (m.getCycleType() != null ? CycleType.valueOf(m.getCycleType()) : CycleType.DAILY);
+        if (req.startDate() != null || req.endDate() != null) {
+            validatePeriod(newStart, newEnd);
+        }
+
+        Set<MealTimeSlot> currentSlots = currentSlots(m.getId());
+        Set<MealTimeSlot> newSlots = req.mealTimeSlots() != null
+                ? EnumSet.copyOf(req.mealTimeSlots())
+                : currentSlots;
+
+        boolean intervalChanged = newInterval != m.getIntervalDays();
+        boolean scheduleChanged = intervalChanged
+                || !newStart.equals(m.getStartDate())
+                || !newEnd.equals(m.getEndDate())
+                || !newSlots.equals(currentSlots);
+        boolean timingChanged = req.intakeTiming() != null && req.intakeTiming() != m.getIntakeTiming();
+
         m.update(
                 req.customDrugName(),
                 req.frequency(),
                 req.effect(),
                 req.imageUrl(),
-                req.notifyOnMiss() != null
-                        ? req.notifyOnMiss()
-                        : m.isNotifyOnMiss(),
+                req.notifyOnMiss() != null ? req.notifyOnMiss() : m.isNotifyOnMiss(),
                 req.storageLocation(),
                 req.doseAmount(),
                 req.appearance(),
                 req.intakeReason()
         );
+        m.updateInfo(req.drugName(), req.category(), req.registrationType(), req.intakeTiming());
+
+        if (scheduleChanged) {
+            m.changeSchedule(newStart, newEnd, newCycle, newInterval);
+            syncLogs(m, newSlots);
+        }
+        // frequency를 직접 보내지 않았는데 간격·시점이 바뀌면 표시 문장도 다시 만든다
+        if (req.frequency() == null && (intervalChanged || timingChanged)) {
+            m.changeFrequency(FrequencyFormatter.compose(m.getIntervalDays(), m.getIntakeTiming()));
+        }
         return new MedicationUpdateResponse(m.getId(), "약 정보가 수정되었습니다.");
     }
 
@@ -175,19 +213,31 @@ public class MedicationService {
         return m;
     }
 
-    private Long createOne(Long seniorProfileId, MedicationItemRequest item) {
-        if (item.endDate().isBefore(item.startDate())) {
+    private void validatePeriod(LocalDate start, LocalDate end) {
+        if (end.isBefore(start)) {
             throw new CustomException(MedicationErrorCode.INVALID_DATE_RANGE);
         }
-        if (ChronoUnit.DAYS.between(item.startDate(), item.endDate()) > MAX_PERIOD_DAYS) {
+        if (ChronoUnit.DAYS.between(start, end) > MAX_PERIOD_DAYS) {
             throw new CustomException(MedicationErrorCode.PERIOD_TOO_LONG);
         }
+    }
+
+    private Long createOne(Long seniorProfileId, MedicationItemRequest item) {
+        validatePeriod(item.startDate(), item.endDate());
+
+        int interval = item.intervalDays() != null ? item.intervalDays() : 1;
+        String frequency = (item.frequency() != null && !item.frequency().isBlank())
+                ? item.frequency()
+                : FrequencyFormatter.compose(interval, item.intakeTiming());
 
         Medication medication = medicationRepository.save(Medication.builder()
                 .seniorProfileId(seniorProfileId)
                 .drugName(item.drugName())
                 .customDrugName(item.customDrugName())
+                .category(item.category())
                 .imageUrl(item.imageUrl())
+                .prescriptionFileName(item.prescriptionFileName())
+                .registrationType(item.registrationType() != null ? item.registrationType() : RegistrationType.MANUAL)
                 .effect(item.effect())
                 .storageLocation(item.storageLocation())
                 .doseAmount(item.doseAmount())
@@ -196,13 +246,15 @@ public class MedicationService {
                 .startDate(item.startDate())
                 .endDate(item.endDate())
                 .cycleType(item.cycleType() != null ? item.cycleType().name() : null)
-                .frequency(item.frequency())
+                .intervalDays(interval)
+                .intakeTiming(item.intakeTiming())
+                .frequency(frequency)
                 .notifyOnMiss(item.notifyOnMiss())
                 .build());
 
         List<MealTimeSlot> slots = item.mealTimeSlots().stream().distinct().toList();
         List<MedicationLog> logs = new ArrayList<>();
-        for (LocalDate d = item.startDate(); !d.isAfter(item.endDate()); d = d.plusDays(1)) {
+        for (LocalDate d = item.startDate(); !d.isAfter(item.endDate()); d = d.plusDays(interval)) {
             for (MealTimeSlot slot : slots) {
                 logs.add(MedicationLog.create(medication, d, slot));
             }
@@ -211,10 +263,60 @@ public class MedicationService {
         return medication.getId();
     }
 
+    private Set<MealTimeSlot> currentSlots(Long medicationId) {
+        Set<MealTimeSlot> slots = EnumSet.noneOf(MealTimeSlot.class);
+        for (Object[] row : medicationLogRepository.findSlotsByMedicationIds(List.of(medicationId))) {
+            slots.add((MealTimeSlot) row[1]);
+        }
+        return slots;
+    }
+
+    /**
+     * 일정이 바뀐 약의 복용 기록 동기화.
+     * - 오늘 이전 기록은 건드리지 않는다 (복용 이력 보존)
+     * - 오늘 이후 PENDING 중 새 일정에 맞지 않는 것은 삭제, 복용·미복용으로 확정된 기록은 보존
+     * - 오늘 이후 새 일정에 필요한데 없는 기록은 PENDING으로 생성
+     */
+    private void syncLogs(Medication m, Set<MealTimeSlot> slots) {
+        LocalDate today = LocalDate.now(KST);
+        List<MedicationLog> fromToday =
+                medicationLogRepository.findByMedicationIdAndTargetDateGreaterThanEqual(m.getId(), today);
+
+        Set<Long> staleIds = fromToday.stream()
+                .filter(l -> l.getStatus() == MedicationStatus.PENDING)
+                .filter(l -> !m.isScheduledOn(l.getTargetDate()) || !slots.contains(l.getMealTimeSlot()))
+                .map(MedicationLog::getId)
+                .collect(Collectors.toSet());
+        if (!staleIds.isEmpty()) {
+            medicationLogRepository.deleteAllByIdInBatch(staleIds);
+        }
+
+        Set<String> existing = fromToday.stream()
+                .filter(l -> !staleIds.contains(l.getId()))
+                .map(l -> l.getTargetDate() + "|" + l.getMealTimeSlot())
+                .collect(Collectors.toSet());
+
+        // 오늘 이후의 첫 복용일부터 간격대로 생성
+        LocalDate from = m.getStartDate().isAfter(today) ? m.getStartDate() : today;
+        long offset = ChronoUnit.DAYS.between(m.getStartDate(), from);
+        LocalDate first = m.getStartDate().plusDays(Math.ceilDiv(offset, (long) m.getIntervalDays()) * m.getIntervalDays());
+
+        List<MedicationLog> created = new ArrayList<>();
+        for (LocalDate d = first; !d.isAfter(m.getEndDate()); d = d.plusDays(m.getIntervalDays())) {
+            for (MealTimeSlot slot : slots) {
+                if (!existing.contains(d + "|" + slot)) {
+                    created.add(MedicationLog.create(m, d, slot));
+                }
+            }
+        }
+        medicationLogRepository.saveAll(created);
+    }
+
     private TimeSlot toTimeSlot(MealTimeSlot slot, List<MedicationLog> logs) {
         List<Medicine> medicines = logs.stream()
                 .map(l -> new Medicine(l.getId(), l.getMedication().getId(),
-                        l.getMedication().getDisplayName(), l.getMedication().getDoseAmount(), l.getStatus()))
+                        l.getMedication().getDisplayName(), l.getMedication().getDoseAmount(),
+                        l.getMedication().getIntakeTiming(), l.getStatus()))
                 .toList();
 
         return new TimeSlot(slot.name(), slot.getLabel(), calcSlotStatus(logs), medicines);

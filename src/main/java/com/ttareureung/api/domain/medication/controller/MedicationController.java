@@ -1,8 +1,10 @@
 package com.ttareureung.api.domain.medication.controller;
 
 import com.ttareureung.api.domain.medication.dto.*;
+import com.ttareureung.api.domain.medication.exception.MedicationErrorCode;
 import com.ttareureung.api.domain.medication.service.MedicationService;
 import com.ttareureung.api.global.common.BaseResponse;
+import com.ttareureung.api.global.exception.CustomException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -109,7 +111,7 @@ public class MedicationController {
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam("medication_ids") List<Long> medicationIds) {
         if (medicationIds.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "삭제할 약을 선택해주세요.");
+            throw new CustomException(MedicationErrorCode.DELETE_TARGET_EMPTY);
         }
         MedicationBulkDeleteResponse response = medicationService.deleteMedications(accountId(jwt), medicationIds);
         return ResponseEntity.ok(BaseResponse.success(response));

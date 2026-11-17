@@ -1,6 +1,7 @@
 package com.ttareureung.api.domain.medication.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.ttareureung.api.domain.medication.entity.IntakeTiming;
 import com.ttareureung.api.domain.medication.entity.MedicationStatus;
 
 import java.time.LocalDate;
@@ -22,6 +23,7 @@ public record DailyScheduleResponse(
             @JsonProperty("medication_id") Long medicationId,
             String name,
             @JsonProperty("dose_amount") String doseAmount,
+            @JsonProperty("intake_timing") IntakeTiming intakeTiming,
             MedicationStatus status
     ) {}
 }

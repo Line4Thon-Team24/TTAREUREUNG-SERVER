@@ -2,11 +2,10 @@ package com.ttareureung.api.domain.medication.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.ttareureung.api.domain.medication.entity.CycleType;
+import com.ttareureung.api.domain.medication.entity.IntakeTiming;
 import com.ttareureung.api.domain.medication.entity.MealTimeSlot;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
+import com.ttareureung.api.domain.medication.entity.RegistrationType;
+import jakarta.validation.constraints.*;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -14,7 +13,10 @@ import java.util.List;
 public record MedicationItemRequest(
         @JsonProperty("drug_name") @NotBlank @Size(max = 100) String drugName,
         @JsonProperty("custom_drug_name") @Size(max = 100) String customDrugName,
+        @Size(max = 50) String category,
         @JsonProperty("image_url") @Size(max = 255) String imageUrl,
+        @JsonProperty("prescription_file_name") @Size(max = 255) String prescriptionFileName,
+        @JsonProperty("registration_type") RegistrationType registrationType,   // 생략하면 MANUAL
         String effect,
         @JsonProperty("storage_location") @NotBlank @Size(max = 100) String storageLocation,
         @JsonProperty("dose_amount") @Size(max = 20) String doseAmount,
@@ -23,7 +25,9 @@ public record MedicationItemRequest(
         @JsonProperty("start_date") @NotNull LocalDate startDate,
         @JsonProperty("end_date") @NotNull LocalDate endDate,
         @JsonProperty("cycle_type") @NotNull CycleType cycleType,
-        @NotBlank @Size(max = 100) String frequency,
+        @JsonProperty("interval_days") @Min(1) @Max(30) Integer intervalDays,   // 생략하면 1(매일)
+        @JsonProperty("intake_timing") IntakeTiming intakeTiming,
+        @Size(max = 100) String frequency,                                       // 생략하면 서버가 조합
         @JsonProperty("notify_on_miss") @NotNull Boolean notifyOnMiss,
         @JsonProperty("meal_time_slots") @NotEmpty List<MealTimeSlot> mealTimeSlots
 ) {

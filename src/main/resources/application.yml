@@ -52,7 +52,7 @@ springdoc:
 
 gemini:
   api-key: ${GEMINI_API_KEY:}
-  model: ${GEMINI_MODEL:gemini-2.5-flash}
+  model: ${GEMINI_MODEL:gemini-3.8-flash}
 
 # 사진 저장소. s3.bucket이 있으면 S3, 없으면 서버 디스크(local.dir)
 storage:
