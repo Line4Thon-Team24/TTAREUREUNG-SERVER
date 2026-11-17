@@ -39,7 +39,7 @@ public class MedicationExtensionService {
             slots.computeIfAbsent((Long) row[0], k -> new java.util.ArrayList<>()).add((MealTimeSlot) row[1]);
         }
         for (Medication m : medications.values()) {
-            m.extendEndDate(1);
+            LocalDate newDate = m.extendToNextOccurrence();
             LocalDate added = m.getEndDate();
             for (MealTimeSlot slot : slots.getOrDefault(m.getId(), List.of())) {
                 if (!logs.existsByMedicationIdAndTargetDateAndMealTimeSlot(m.getId(), added, slot)) {

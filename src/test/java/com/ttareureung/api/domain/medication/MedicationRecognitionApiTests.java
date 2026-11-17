@@ -3,6 +3,7 @@ package com.ttareureung.api.domain.medication;
 import com.ttareureung.api.domain.medication.client.AiFileClient;
 import com.ttareureung.api.support.ApiTestSupport;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -99,5 +100,37 @@ class MedicationRecognitionApiTests extends ApiTestSupport {
         return mockMvc.perform(multipart("/api/v1/medications/recognition")
                 .file(new MockMultipartFile("file", "rx", contentType, content))
                 .header(HttpHeaders.AUTHORIZATION, token));
+    }
+
+    @Test
+    void returnsCategoryTimingAndSanitizedFileName() throws Exception {
+        when(aiFileClient.askWithFile(any(), any(), any(), any())).thenReturn("""
+            {"medications":[{"drug_name":"아로르신정","category":"진통소염제","effect":"통증 완화",
+            "frequency":"1일 3회, 식후 30분","dose_amount":"1정","interval_days":1,
+            "intake_timing":"AFTER_MEAL_30M","meal_time_slots":["MORNING","BEFORE_SLEEP"],"confidence":98}]}""");
+
+        mockMvc.perform(multipart("/api/v1/medications/recognition")
+                        .file(new MockMultipartFile("file", "../../etc/처방전.jpg", "image/jpeg", new byte[]{1}))
+                        .header(HttpHeaders.AUTHORIZATION, bearer(newAccount())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.file_name").value("처방전.jpg"))   // 경로 제거
+                .andExpect(jsonPath("$.data.medications[0].category").value("진통소염제"))
+                .andExpect(jsonPath("$.data.medications[0].intake_timing").value("AFTER_MEAL_30M"))
+                .andExpect(jsonPath("$.data.medications[0].interval_days").value(1))
+                .andExpect(jsonPath("$.data.medications[0].meal_time_slots[1]").value("BEFORE_SLEEP"));
+    }
+
+    @Test
+    void promptListsBedtimeSlotAndNewFields() throws Exception {
+        when(aiFileClient.askWithFile(any(), any(), any(), any())).thenReturn("{\"medications\":[{\"drug_name\":\"약\"}]}");
+
+        mockMvc.perform(multipart("/api/v1/medications/recognition")
+                        .file(new MockMultipartFile("file", "rx.jpg", "image/jpeg", new byte[]{1}))
+                        .header(HttpHeaders.AUTHORIZATION, bearer(newAccount())))
+                .andExpect(status().isOk());
+
+        ArgumentCaptor<String> system = ArgumentCaptor.forClass(String.class);
+        verify(aiFileClient).askWithFile(system.capture(), any(), any(), any());
+        assertThat(system.getValue()).contains("BEFORE_SLEEP", "intake_timing", "interval_days", "category");
     }
 }

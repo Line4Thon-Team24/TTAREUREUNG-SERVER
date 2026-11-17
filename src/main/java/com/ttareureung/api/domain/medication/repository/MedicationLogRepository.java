@@ -44,4 +44,6 @@ public interface MedicationLogRepository extends JpaRepository<MedicationLog, Lo
         """)
     List<MedicationLog> findMonthlyLogs(@Param("seniorId") Long seniorId,
                                         @Param("from") LocalDate from, @Param("to") LocalDate to);
+
+    List<MedicationLog> findByMedicationIdAndTargetDateGreaterThanEqual(Long medicationId, LocalDate date);
 }

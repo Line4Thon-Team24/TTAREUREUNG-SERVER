@@ -151,6 +151,7 @@ public abstract class ApiTestSupport {
         item.put("start_date", start);
         item.put("end_date", end);
         item.put("cycle_type", "DAILY");
+        item.put("interval_days", 1);
         item.put("frequency", "하루 2회, 식후 30분");
         item.put("notify_on_miss", true);
         item.put("meal_time_slots", List.of(slots));

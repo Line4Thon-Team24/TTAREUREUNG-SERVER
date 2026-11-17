@@ -24,13 +24,16 @@ public class MedicationRecognitionService {
             너는 처방전·약봉투·약 사진에서 복약 정보를 추출하는 도구다.
             - 이미지에 실제로 적힌 내용만 추출하고, 보이지 않는 값은 추측하지 말고 null로 둔다.
             - 약마다 항목 하나를 만든다.
-            - meal_time_slots는 MORNING, LUNCH, DINNER 중에서만 고르고, 알 수 없으면 빈 배열로 둔다.
+            - category는 약의 종류를 "진통소염제", "혈압약"처럼 짧은 한국어 명사로 적고, 알 수 없으면 null로 둔다.
+            - meal_time_slots는 MORNING, LUNCH, DINNER, BEFORE_SLEEP 중에서만 고르고, 알 수 없으면 빈 배열로 둔다.
+            - intake_timing은 BEFORE_MEAL_30M(식사 30분 전), AFTER_MEAL_30M(식사 30분 후), RIGHT_AFTER_MEAL(식사 직후), BEFORE_BED(취침 전) 중 하나로 적고, 알 수 없으면 null로 둔다.
+            - interval_days는 복용 간격을 일 단위 정수로 적는다. 매일이면 1, 이틀에 한 번이면 2, 일주일에 한 번이면 7이고, 알 수 없으면 null로 둔다.
             - frequency는 "하루 3회, 식후 30분" 같은 한국어 문장으로 적는다.
             - dose_amount는 1회 복용량을 "2정", "1포", "5ml"처럼 숫자와 단위로 적고, 없으면 null로 둔다.
             - confidence는 0~100 정수로, 글자를 얼마나 확실하게 읽었는지 적는다.
             - 약 정보가 전혀 없는 이미지면 {"medications": []} 를 반환한다.
             - 설명이나 마크다운 없이 JSON 객체만 출력한다.
-            형식: {"medications":[{"drug_name":"","effect":"","frequency":"","dose_amount":"","meal_time_slots":[],"confidence":0}]}
+            형식: {"medications":[{"drug_name":"","category":"","effect":"","frequency":"","dose_amount":"","interval_days":1,"intake_timing":"","meal_time_slots":[],"confidence":0}]}
             """;
 
     private final AiFileClient aiFileClient;
@@ -72,6 +75,18 @@ public class MedicationRecognitionService {
             throw new CustomException(MedicationErrorCode.NO_MEDICATION_RECOGNIZED);
         }
 
-        return result;
+        return new RecognitionResponse(safeFileName(file.getOriginalFilename()), result.medications());
+    }
+
+    private static String safeFileName(String original) {
+        if (original == null) {
+            return null;
+        }
+        String name = original.replace('\\', '/');
+        name = name.substring(name.lastIndexOf('/') + 1).replaceAll("\\p{Cntrl}", "").strip();
+        if (name.isEmpty()) {
+            return null;
+        }
+        return name.length() > 255 ? name.substring(0, 255) : name;
     }
 }
