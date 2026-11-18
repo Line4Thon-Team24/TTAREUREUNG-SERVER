@@ -55,7 +55,7 @@ class PillRecognitionApiTests extends ApiTestSupport {
         // 등록 정보가 프롬프트에 들어가는지
         ArgumentCaptor<String> prompt = ArgumentCaptor.forClass(String.class);
         verify(aiFileClient).askWithFile(any(), eq("image/jpeg"), eq(IMAGE), prompt.capture());
-        assertThat(prompt.getValue()).contains("허리약").contains("흰색 원형 알약").contains("1정").contains("아침 식후");
+        assertThat(prompt.getValue()).contains("허리약").contains("흰색 원형 알약").contains("1정").contains("복용 시간대 아침");
 
         intake(f.token, f.sessionId, f.medicationId)
                 .andExpect(status().isOk())

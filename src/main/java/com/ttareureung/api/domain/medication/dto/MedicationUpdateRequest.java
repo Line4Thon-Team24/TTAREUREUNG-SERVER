@@ -1,6 +1,7 @@
 package com.ttareureung.api.domain.medication.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.ttareureung.api.domain.medication.entity.CycleType;
 import com.ttareureung.api.domain.medication.entity.IntakeTiming;
 import com.ttareureung.api.domain.medication.entity.MealTimeSlot;
 import com.ttareureung.api.domain.medication.entity.RegistrationType;
@@ -10,6 +11,7 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 import java.time.LocalDate;
+import java.util.List;
 
 public record MedicationUpdateRequest(
         @JsonProperty("drug_name") @Pattern(regexp = ".*\\S.*") @Size(max = 100) String drugName,
@@ -23,6 +25,7 @@ public record MedicationUpdateRequest(
         @JsonProperty("storage_location") @Pattern(regexp = ".*\\S.*") @Size(max = 100) String storageLocation,
         @JsonProperty("dose_amount") @Size(max = 20) String doseAmount,
         @Size(max = 50) String appearance,
+        @Size(max = 30) String strength,
         @JsonProperty("intake_reason") @Size(max = 1000) String intakeReason,
         @JsonProperty("start_date") LocalDate startDate,
         @JsonProperty("end_date") LocalDate endDate,

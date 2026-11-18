@@ -5,6 +5,8 @@ import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 class MedicationScheduleTest {
 
     private Medication medication(String start, String end, Integer interval) {
