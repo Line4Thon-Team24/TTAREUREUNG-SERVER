@@ -221,7 +221,7 @@ class DoseFinishApiTests extends ApiTestSupport {
                 .andExpect(jsonPath("$.data.alerts[0].readAt").doesNotExist())
                 .andExpect(jsonPath("$.data.alerts[1].type").value("COMPLETED"))
                 .andExpect(jsonPath("$.data.alerts[1].sessionId").value(sessionId))
-                .andExpect(jsonPath("$.data.alerts[1].slotName").value("아침 식후"))
+                .andExpect(jsonPath("$.data.alerts[1].slotName").value("아침"))
                 .andExpect(jsonPath("$.data.alerts[1].message").value("김순자님께서 오전 12시 약 복용을 완료했어요."))
                 .andExpect(jsonPath("$.data.upcoming.length()").value(0));
         long completedAlert = jsonMapper.readTree(list.andReturn().getResponse().getContentAsString())

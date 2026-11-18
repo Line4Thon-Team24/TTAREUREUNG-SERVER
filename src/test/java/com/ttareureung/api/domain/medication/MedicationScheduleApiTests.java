@@ -29,7 +29,7 @@ class MedicationScheduleApiTests extends ApiTestSupport {
                 .andExpect(jsonPath("$.data.date").value(D))
                 .andExpect(jsonPath("$.data.time_slots.length()").value(2))
                 .andExpect(jsonPath("$.data.time_slots[0].slot").value("MORNING"))
-                .andExpect(jsonPath("$.data.time_slots[0].slot_name").value("아침 식후"))
+                .andExpect(jsonPath("$.data.time_slots[0].slot_name").value("아침"))
                 .andExpect(jsonPath("$.data.time_slots[0].status").value("PENDING"))
                 .andExpect(jsonPath("$.data.time_slots[0].medicines[0].name").value("혈압약"))
                 .andExpect(jsonPath("$.data.time_slots[0].medicines[0].dose_amount").value("1정"))

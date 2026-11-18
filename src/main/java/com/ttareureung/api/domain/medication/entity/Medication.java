@@ -100,7 +100,7 @@ public class Medication {
     @Builder
     public Medication(Long seniorProfileId, String drugName, String customDrugName, String category,
                       String imageUrl, String prescriptionFileName, RegistrationType registrationType,
-                      String effect, String storageLocation, String doseAmount, String appearance,
+                      String effect, String storageLocation, String doseAmount, String strength, String appearance,
                       String intakeReason, String frequency, String cycleType, Integer intervalDays,
                       IntakeTiming intakeTiming, boolean notifyOnMiss, LocalDate startDate, LocalDate endDate) {
         this.seniorProfileId = seniorProfileId;
@@ -127,7 +127,7 @@ public class Medication {
 
     public void update(String customDrugName, String frequency, String effect, String imageUrl,
                        boolean notifyOnMiss, String storageLocation, String doseAmount, String appearance,
-                       String intakeReason) {
+                       String intakeReason, String strength) {
 
         // 빈 문자열은 비우기, null은 유지
         if (doseAmount != null) {

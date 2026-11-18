@@ -38,11 +38,11 @@ class DoseCallApiTests extends ApiTestSupport {
                 .andExpect(jsonPath("$.data.serverTime").isNotEmpty())
                 .andExpect(jsonPath("$.data.current.sessionId").isNumber())
                 .andExpect(jsonPath("$.data.current.timeSlot").value("MORNING"))
-                .andExpect(jsonPath("$.data.current.slotName").value("아침 식후"))
+                .andExpect(jsonPath("$.data.current.slotName").value("아침"))
                 .andExpect(jsonPath("$.data.current.status").value("SCHEDULED"))
                 .andExpect(jsonPath("$.data.current.callAttempts").value(0))
                 .andExpect(jsonPath("$.data.current.totalCount").value(2))
-                .andExpect(jsonPath("$.data.current.voiceText").value("아침 식후 약 드실 시간이에요. 약이 2개 있어요."))
+                .andExpect(jsonPath("$.data.current.voiceText").value("아침 약 드실 시간이에요. 약이 2개 있어요."))
                 .andExpect(jsonPath("$.data.current.medications.length()").value(2))
                 .andExpect(jsonPath("$.data.current.medications[0].order").value(1))
                 .andExpect(jsonPath("$.data.current.medications[0].medicationId").value(first))
@@ -73,7 +73,7 @@ class DoseCallApiTests extends ApiTestSupport {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.current").doesNotExist())
                 .andExpect(jsonPath("$.data.next.timeSlot").value("LUNCH"))
-                .andExpect(jsonPath("$.data.next.slotName").value("점심 식후"))
+                .andExpect(jsonPath("$.data.next.slotName").value("점심"))
                 .andExpect(jsonPath("$.data.next.medicationNames[0]").value("허리약"));
     }
 
@@ -122,7 +122,7 @@ class DoseCallApiTests extends ApiTestSupport {
                 .andExpect(jsonPath("$.data.medications.length()").value(1))
                 .andExpect(jsonPath("$.data.medications[0].order").value(1))
                 .andExpect(jsonPath("$.data.medications[0].name").value("혈압약"))
-                .andExpect(jsonPath("$.data.voiceText").value("아침 식후 약 드실 시간이에요. 약이 1개 있어요."));
+                .andExpect(jsonPath("$.data.voiceText").value("아침 약 드실 시간이에요. 약이 1개 있어요."));
         assertThat(jdbcTemplate.queryForObject("SELECT answered_at FROM dose_sessions WHERE id = ?", String.class, sessionId))
                 .isEqualTo(answeredAt);
 

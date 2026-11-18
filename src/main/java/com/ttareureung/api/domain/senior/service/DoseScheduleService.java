@@ -35,7 +35,7 @@ public class DoseScheduleService {
 
     public DoseScheduleService(SeniorAccessValidator seniorAccess, MedicationLogRepository logs,
                                DoseSessionRepository sessions, DoseSessionCreator creator,
-                               DoseTimeService doseTimeService, Clock clock) {
+                               DoseTimeService doseTimeService, FileUrlResolver fileUrlResolver, Clock clock) {
         this.seniorAccess = seniorAccess;
         this.logs = logs;
         this.sessions = sessions;

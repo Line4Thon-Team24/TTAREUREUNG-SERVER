@@ -1,6 +1,6 @@
 package com.ttareureung.api.domain.guardian;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import com.ttareureung.api.support.ApiTestSupport;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.web.servlet.ResultActions;
