@@ -46,8 +46,9 @@ public class MedicationService {
         Map<MealTimeSlot, List<MedicationLog>> grouped = logs.stream()
                 .collect(Collectors.groupingBy(MedicationLog::getMealTimeSlot, TreeMap::new, Collectors.toList()));
 
+        Map<Long, String> imageUrls = new HashMap<>();
         List<TimeSlot> timeSlots = grouped.entrySet().stream()
-                .map(e -> toTimeSlot(e.getKey(), e.getValue()))
+                .map(e -> toTimeSlot(e.getKey(), e.getValue(), imageUrls))
                 .toList();
 
         return new DailyScheduleResponse(date, timeSlots);
@@ -128,6 +129,9 @@ public class MedicationService {
                         m.getEffect(),
                         m.getStorageLocation(),
                         m.getDoseAmount(),
+                        m.getDoseAmount(),
+                        m.getStrength(),
+                        m.getAppearance(),
                         m.getAppearance(),
                         m.getIntakeReason(),
                         m.getFrequency(),
@@ -181,7 +185,8 @@ public class MedicationService {
                 req.storageLocation(),
                 req.doseAmount(),
                 req.appearance(),
-                req.intakeReason()
+                req.intakeReason(),
+                req.strength()
         );
         m.updateInfo(req.drugName(), req.category(), req.registrationType(), req.intakeTiming());
 
@@ -241,6 +246,7 @@ public class MedicationService {
                 .effect(item.effect())
                 .storageLocation(item.storageLocation())
                 .doseAmount(item.doseAmount())
+                .strength(item.strength())
                 .appearance(item.appearance())
                 .intakeReason(item.intakeReason())
                 .startDate(item.startDate())
@@ -312,11 +318,15 @@ public class MedicationService {
         medicationLogRepository.saveAll(created);
     }
 
-    private TimeSlot toTimeSlot(MealTimeSlot slot, List<MedicationLog> logs) {
+    private TimeSlot toTimeSlot(MealTimeSlot slot, List<MedicationLog> logs, Map<Long, String> imageUrls) {
         List<Medicine> medicines = logs.stream()
-                .map(l -> new Medicine(l.getId(), l.getMedication().getId(),
-                        l.getMedication().getDisplayName(), l.getMedication().getDoseAmount(),
-                        l.getMedication().getIntakeTiming(), l.getStatus()))
+                .map(l -> {
+                    Medication m = l.getMedication();
+                    return new Medicine(l.getId(), m.getId(), m.getDisplayName(), m.getStrength(),
+                            m.getDoseAmount(),
+                            imageUrls.computeIfAbsent(m.getId(), id -> fileUrlResolver.resolve(m.getImageUrl())),
+                            m.getIntakeTiming(), l.getStatus());
+                })
                 .toList();
 
         return new TimeSlot(slot.name(), slot.getLabel(), calcSlotStatus(logs), medicines);

@@ -22,7 +22,9 @@ public record DailyScheduleResponse(
             @JsonProperty("log_id") Long logId,
             @JsonProperty("medication_id") Long medicationId,
             String name,
+            String strength,
             @JsonProperty("dose_amount") String doseAmount,
+            @JsonProperty("image_url") String imageUrl,
             @JsonProperty("intake_timing") IntakeTiming intakeTiming,
             MedicationStatus status
     ) {}

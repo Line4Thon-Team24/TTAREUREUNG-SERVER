@@ -54,6 +54,10 @@ public class Medication {
     @Column(name = "dose_amount", length = 20)
     private String doseAmount;
 
+    // 함량. "5mg", "500mg"처럼 약 하나의 성분 용량. 1회 복용량(doseAmount)과 별개
+    @Column(length = 20)
+    private String strength;
+
     // 시니어 약 찾기 화면의 "파란색 원기둥". 약 판독 프롬프트 힌트로도 사용
     @Column(length = 50)
     private String appearance;
@@ -109,6 +113,7 @@ public class Medication {
         this.effect = effect;
         this.storageLocation = storageLocation;
         this.doseAmount = doseAmount;
+        this.strength = strength;
         this.appearance = appearance;
         this.intakeReason = intakeReason;
         this.frequency = frequency;
@@ -149,6 +154,9 @@ public class Medication {
         }
         if (intakeReason != null) {
             this.intakeReason = intakeReason.isEmpty() ? null : intakeReason;
+        }
+        if (strength != null) {
+            this.strength = strength.isEmpty() ? null : strength;
         }
     }
 
