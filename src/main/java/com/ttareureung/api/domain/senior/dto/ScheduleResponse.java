@@ -34,6 +34,8 @@ public record ScheduleResponse(
             @Schema(example = "3") Long medicationId,
             @Schema(example = "관절약") String name,
             @Schema(example = "1정") String doseAmount,
+            @Schema(description = "함량", example = "5mg") String strength,
+            @Schema(description = "약 사진 링크(1시간 유효). 없으면 null") String imageUrl,
             MedicationStatus status
     ) {
     }

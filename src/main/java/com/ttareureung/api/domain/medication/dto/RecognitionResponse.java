@@ -16,6 +16,7 @@ public record RecognitionResponse(
             String effect,
             String frequency,
             @JsonProperty("dose_amount") String doseAmount,
+            String strength,
             @JsonProperty("interval_days") Integer intervalDays,
             @JsonProperty("intake_timing") IntakeTiming intakeTiming,
             @JsonProperty("meal_time_slots") List<MealTimeSlot> mealTimeSlots,

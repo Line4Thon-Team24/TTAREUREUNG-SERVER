@@ -1,5 +1,6 @@
 package com.ttareureung.api.domain.senior.service;
 
+import com.ttareureung.api.domain.file.service.FileUrlResolver;
 import com.ttareureung.api.domain.guardian.service.SeniorAccessValidator;
 import com.ttareureung.api.domain.medication.entity.MealTimeSlot;
 import com.ttareureung.api.domain.medication.entity.MedicationLog;
@@ -32,16 +33,18 @@ public class DoseScheduleService {
     private final DoseSessionRepository sessions;
     private final DoseSessionCreator creator;
     private final DoseTimeService doseTimeService;
+    private final FileUrlResolver urls;
     private final Clock clock;
 
     public DoseScheduleService(SeniorAccessValidator seniorAccess, MedicationLogRepository logs,
                                DoseSessionRepository sessions, DoseSessionCreator creator,
-                               DoseTimeService doseTimeService, Clock clock) {
+                               DoseTimeService doseTimeService, FileUrlResolver urls, Clock clock) {
         this.seniorAccess = seniorAccess;
         this.logs = logs;
         this.sessions = sessions;
         this.creator = creator;
         this.doseTimeService = doseTimeService;
+        this.urls = urls;
         this.clock = clock;
     }
 
@@ -74,7 +77,8 @@ public class DoseScheduleService {
             DoseSession session = sessionBySlot.get(slot);
             List<ScheduleResponse.Medication> medications = slotLogs.stream()
                     .map(l -> new ScheduleResponse.Medication(l.getMedication().getId(),
-                            l.getMedication().getDisplayName(), l.getMedication().getDoseAmount(), l.getStatus()))
+                            l.getMedication().getDisplayName(), l.getMedication().getDoseAmount(),
+                            l.getMedication().getStrength(), urls.resolve(l.getMedication().getImageUrl()), l.getStatus()))
                     .toList();
             long takenInSlot = slotLogs.stream().filter(l -> l.getStatus() == MedicationStatus.TAKEN).count();
             taken += (int) takenInSlot;

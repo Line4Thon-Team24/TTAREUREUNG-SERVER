@@ -21,6 +21,7 @@ public record MedicationItemRequest(
         @JsonProperty("storage_location") @NotBlank @Size(max = 100) String storageLocation,
         @JsonProperty("dose_amount") @Size(max = 20) String doseAmount,
         @Size(max = 50) String appearance,
+        @Size(max = 30) String strength,
         @JsonProperty("intake_reason") @Size(max = 1000) String intakeReason,
         @JsonProperty("start_date") @NotNull LocalDate startDate,
         @JsonProperty("end_date") @NotNull LocalDate endDate,

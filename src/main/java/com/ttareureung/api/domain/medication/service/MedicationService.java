@@ -129,6 +129,7 @@ public class MedicationService {
                         m.getStorageLocation(),
                         m.getDoseAmount(),
                         m.getAppearance(),
+                        m.getStrength(),
                         m.getIntakeReason(),
                         m.getFrequency(),
                         m.getCycleType() != null ? CycleType.valueOf(m.getCycleType()) : null,
@@ -181,6 +182,7 @@ public class MedicationService {
                 req.storageLocation(),
                 req.doseAmount(),
                 req.appearance(),
+                req.strength(),
                 req.intakeReason()
         );
         m.updateInfo(req.drugName(), req.category(), req.registrationType(), req.intakeTiming());
@@ -242,6 +244,7 @@ public class MedicationService {
                 .storageLocation(item.storageLocation())
                 .doseAmount(item.doseAmount())
                 .appearance(item.appearance())
+                .strength(item.strength())
                 .intakeReason(item.intakeReason())
                 .startDate(item.startDate())
                 .endDate(item.endDate())

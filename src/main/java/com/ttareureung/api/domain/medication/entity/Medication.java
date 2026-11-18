@@ -58,6 +58,10 @@ public class Medication {
     @Column(length = 50)
     private String appearance;
 
+    // 함량("5mg", "100mg"). 약 카드 이름 아래 표시. 1회 복용 수량(dose_amount)과 별개
+    @Column(length = 30)
+    private String strength;
+
     @Column(name = "intake_reason")
     private String intakeReason;
 
@@ -97,7 +101,7 @@ public class Medication {
     public Medication(Long seniorProfileId, String drugName, String customDrugName, String category,
                       String imageUrl, String prescriptionFileName, RegistrationType registrationType,
                       String effect, String storageLocation, String doseAmount, String appearance,
-                      String intakeReason, String frequency, String cycleType, Integer intervalDays,
+                      String strength, String intakeReason, String frequency, String cycleType, Integer intervalDays,
                       IntakeTiming intakeTiming, boolean notifyOnMiss, LocalDate startDate, LocalDate endDate) {
         this.seniorProfileId = seniorProfileId;
         this.drugName = drugName;
@@ -110,6 +114,7 @@ public class Medication {
         this.storageLocation = storageLocation;
         this.doseAmount = doseAmount;
         this.appearance = appearance;
+        this.strength = strength;
         this.intakeReason = intakeReason;
         this.frequency = frequency;
         this.cycleType = cycleType;
@@ -122,7 +127,7 @@ public class Medication {
 
     public void update(String customDrugName, String frequency, String effect, String imageUrl,
                        boolean notifyOnMiss, String storageLocation, String doseAmount, String appearance,
-                       String intakeReason) {
+                       String strength, String intakeReason) {
 
         // 빈 문자열은 비우기, null은 유지
         if (doseAmount != null) {
@@ -130,6 +135,9 @@ public class Medication {
         }
         if (appearance != null) {
             this.appearance = appearance.isEmpty() ? null : appearance;
+        }
+        if (strength != null) {
+            this.strength = strength.isEmpty() ? null : strength;
         }
         if (customDrugName != null) {
             this.customDrugName = customDrugName;

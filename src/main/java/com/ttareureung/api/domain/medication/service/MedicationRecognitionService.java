@@ -30,10 +30,11 @@ public class MedicationRecognitionService {
             - interval_days는 복용 간격을 일 단위 정수로 적는다. 매일이면 1, 이틀에 한 번이면 2, 일주일에 한 번이면 7이고, 알 수 없으면 null로 둔다.
             - frequency는 "하루 3회, 식후 30분" 같은 한국어 문장으로 적는다.
             - dose_amount는 1회 복용량을 "2정", "1포", "5ml"처럼 숫자와 단위로 적고, 없으면 null로 둔다.
+            - strength는 약 한 알·한 포의 함량을 "5mg", "100mg"처럼 적고, 없으면 null로 둔다. dose_amount와 섞지 않는다.
             - confidence는 0~100 정수로, 글자를 얼마나 확실하게 읽었는지 적는다.
             - 약 정보가 전혀 없는 이미지면 {"medications": []} 를 반환한다.
             - 설명이나 마크다운 없이 JSON 객체만 출력한다.
-            형식: {"medications":[{"drug_name":"","category":"","effect":"","frequency":"","dose_amount":"","interval_days":1,"intake_timing":"","meal_time_slots":[],"confidence":0}]}
+            형식: {"medications":[{"drug_name":"","category":"","effect":"","frequency":"","dose_amount":"","strength":"","interval_days":1,"intake_timing":"","meal_time_slots":[],"confidence":0}]}
             """;
 
     private final AiFileClient aiFileClient;
