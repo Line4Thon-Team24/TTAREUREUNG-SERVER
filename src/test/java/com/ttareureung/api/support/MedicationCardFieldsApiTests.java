@@ -2,6 +2,12 @@ package com.ttareureung.api.support;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.test.web.servlet.MvcResult;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -12,6 +18,9 @@ class MedicationCardFieldsApiTests extends ApiTestSupport {
     private static final String URL = "/api/v1/medications";
     private static final String D = "2026-11-04";
     private static final String PILL_URL = "https://example.com/pill.png";
+
+    // Spring Boot 4 = Jackson 3 (tools.jackson) 기준으로 응답 JSON을 읽기 위한 매퍼
+    private static final JsonMapper JACKSON3 = JsonMapper.builder().build();
 
     @Test
     void strengthIsStoredAndReturnedInMedicationList() throws Exception {
@@ -97,12 +106,12 @@ class MedicationCardFieldsApiTests extends ApiTestSupport {
                 .andExpect(jsonPath("$.data.totalCount").value(2))
                 .andReturn();
 
-        var card = scheduleMedication(result, a);
+        JsonNode card = scheduleMedication(result, a);
         assertThat(card.path("strength").asString()).isEqualTo("5mg");
         assertThat(card.path("doseAmount").asString()).isEqualTo("1정");
         assertThat(card.path("imageUrl").asString()).isEqualTo(PILL_URL);
 
-        var plain = scheduleMedication(result, b);
+        JsonNode plain = scheduleMedication(result, b);
         assertThat(plain.path("strength").isNull() || plain.path("strength").isMissingNode()).isTrue();
         assertThat(plain.path("imageUrl").isNull() || plain.path("imageUrl").isMissingNode()).isTrue();
     }
@@ -141,10 +150,10 @@ class MedicationCardFieldsApiTests extends ApiTestSupport {
         return jdbcTemplate.queryForObject("SELECT strength FROM medication WHERE id = ?", String.class, medicationId);
     }
 
-    private tools.jackson.databind.JsonNode scheduleMedication(MvcResult result, long medicationId) throws Exception {
-        var root = jsonMapper.readTree(result.getResponse().getContentAsString(StandardCharsets.UTF_8));
-        for (var session : root.path("data").path("sessions")) {
-            for (var medication : session.path("medications")) {
+    private JsonNode scheduleMedication(MvcResult result, long medicationId) throws Exception {
+        JsonNode root = JACKSON3.readTree(result.getResponse().getContentAsString(StandardCharsets.UTF_8));
+        for (JsonNode session : root.path("data").path("sessions")) {
+            for (JsonNode medication : session.path("medications")) {
                 if (medication.path("medicationId").asLong() == medicationId) {
                     return medication;
                 }
