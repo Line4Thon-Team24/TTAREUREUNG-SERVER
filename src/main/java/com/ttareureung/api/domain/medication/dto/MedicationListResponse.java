@@ -22,7 +22,7 @@ public record MedicationListResponse(List<MedicationItem> medications) {
             String effect,
             @JsonProperty("storage_location") String storageLocation,
             @JsonProperty("dose_amount") String doseAmount,
-            String appearance,
+            String appearance, String strength, 
             @JsonProperty("intake_reason") String intakeReason,
             String frequency,
             @JsonProperty("cycle_type") CycleType cycleType,

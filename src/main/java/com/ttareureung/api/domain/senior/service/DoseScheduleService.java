@@ -1,5 +1,6 @@
 package com.ttareureung.api.domain.senior.service;
 
+import com.ttareureung.api.domain.file.service.FileUrlResolver;
 import com.ttareureung.api.domain.guardian.service.SeniorAccessValidator;
 import com.ttareureung.api.domain.medication.entity.MealTimeSlot;
 import com.ttareureung.api.domain.medication.entity.MedicationLog;
@@ -15,10 +16,7 @@ import org.springframework.stereotype.Service;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.util.ArrayList;
-import java.util.EnumMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * 날짜별 복용 일정 조회.
@@ -33,6 +31,7 @@ public class DoseScheduleService {
     private final DoseSessionCreator creator;
     private final DoseTimeService doseTimeService;
     private final Clock clock;
+    private final FileUrlResolver fileUrlResolver;
 
     public DoseScheduleService(SeniorAccessValidator seniorAccess, MedicationLogRepository logs,
                                DoseSessionRepository sessions, DoseSessionCreator creator,
@@ -43,6 +42,7 @@ public class DoseScheduleService {
         this.creator = creator;
         this.doseTimeService = doseTimeService;
         this.clock = clock;
+        this.fileUrlResolver = fileUrlResolver;
     }
 
     // 트랜잭션 없음: REPEATABLE READ 스냅샷 안에서는 별도 트랜잭션이 만든 회차 행이 보이지 않음
@@ -53,6 +53,7 @@ public class DoseScheduleService {
         boolean isToday = target.equals(today);
 
         Map<MealTimeSlot, List<MedicationLog>> logsBySlot = new EnumMap<>(MealTimeSlot.class);
+        Map<Long, String> imageUrls = new HashMap<>();
         for (MedicationLog log : logs.findDailyLogs(seniorId, target)) {
             logsBySlot.computeIfAbsent(log.getMealTimeSlot(), k -> new ArrayList<>()).add(log);
         }
@@ -73,8 +74,13 @@ public class DoseScheduleService {
             }
             DoseSession session = sessionBySlot.get(slot);
             List<ScheduleResponse.Medication> medications = slotLogs.stream()
-                    .map(l -> new ScheduleResponse.Medication(l.getMedication().getId(),
-                            l.getMedication().getDisplayName(), l.getMedication().getDoseAmount(), l.getStatus()))
+                    .map(l -> {
+                        var m = l.getMedication();
+                        return new ScheduleResponse.Medication(m.getId(), m.getDisplayName(), m.getStrength(),
+                                m.getDoseAmount(),
+                                imageUrls.computeIfAbsent(m.getId(), id -> fileUrlResolver.resolve(m.getImageUrl())),
+                                l.getStatus());
+                    })
                     .toList();
             long takenInSlot = slotLogs.stream().filter(l -> l.getStatus() == MedicationStatus.TAKEN).count();
             taken += (int) takenInSlot;
