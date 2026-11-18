@@ -54,13 +54,13 @@ public class Medication {
     @Column(name = "dose_amount", length = 20)
     private String doseAmount;
 
+    // 함량. "5mg", "500mg"처럼 약 하나의 성분 용량. 1회 복용량(doseAmount)과 별개
+    @Column(length = 20)
+    private String strength;
+
     // 시니어 약 찾기 화면의 "파란색 원기둥". 약 판독 프롬프트 힌트로도 사용
     @Column(length = 50)
     private String appearance;
-
-    // 함량("5mg", "100mg"). 약 카드 이름 아래 표시. 1회 복용 수량(dose_amount)과 별개
-    @Column(length = 30)
-    private String strength;
 
     @Column(name = "intake_reason")
     private String intakeReason;
@@ -100,8 +100,8 @@ public class Medication {
     @Builder
     public Medication(Long seniorProfileId, String drugName, String customDrugName, String category,
                       String imageUrl, String prescriptionFileName, RegistrationType registrationType,
-                      String effect, String storageLocation, String doseAmount, String appearance,
-                      String strength, String intakeReason, String frequency, String cycleType, Integer intervalDays,
+                      String effect, String storageLocation, String doseAmount, String strength, String appearance,
+                      String intakeReason, String frequency, String cycleType, Integer intervalDays,
                       IntakeTiming intakeTiming, boolean notifyOnMiss, LocalDate startDate, LocalDate endDate) {
         this.seniorProfileId = seniorProfileId;
         this.drugName = drugName;
@@ -113,8 +113,8 @@ public class Medication {
         this.effect = effect;
         this.storageLocation = storageLocation;
         this.doseAmount = doseAmount;
-        this.appearance = appearance;
         this.strength = strength;
+        this.appearance = appearance;
         this.intakeReason = intakeReason;
         this.frequency = frequency;
         this.cycleType = cycleType;
@@ -127,7 +127,7 @@ public class Medication {
 
     public void update(String customDrugName, String frequency, String effect, String imageUrl,
                        boolean notifyOnMiss, String storageLocation, String doseAmount, String appearance,
-                       String strength, String intakeReason) {
+                       String intakeReason, String strength) {
 
         // 빈 문자열은 비우기, null은 유지
         if (doseAmount != null) {
@@ -135,9 +135,6 @@ public class Medication {
         }
         if (appearance != null) {
             this.appearance = appearance.isEmpty() ? null : appearance;
-        }
-        if (strength != null) {
-            this.strength = strength.isEmpty() ? null : strength;
         }
         if (customDrugName != null) {
             this.customDrugName = customDrugName;
@@ -157,6 +154,9 @@ public class Medication {
         }
         if (intakeReason != null) {
             this.intakeReason = intakeReason.isEmpty() ? null : intakeReason;
+        }
+        if (strength != null) {
+            this.strength = strength.isEmpty() ? null : strength;
         }
     }
 

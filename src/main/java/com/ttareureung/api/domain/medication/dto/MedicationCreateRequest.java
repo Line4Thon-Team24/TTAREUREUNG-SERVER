@@ -21,8 +21,8 @@ public record MedicationCreateRequest(
         String effect,
         @JsonProperty("storage_location") @NotBlank @Size(max = 100) String storageLocation,
         @JsonProperty("dose_amount") @Size(max = 20) String doseAmount,
+        @Size(max = 20) String strength,
         @Size(max = 50) String appearance,
-        @Size(max = 30) String strength,
         @JsonProperty("intake_reason") @Size(max = 1000) String intakeReason,
         @JsonProperty("start_date") @NotNull LocalDate startDate,
         @JsonProperty("end_date") @NotNull LocalDate endDate,
@@ -35,7 +35,7 @@ public record MedicationCreateRequest(
 ) {
     public MedicationItemRequest toItem() {
         return new MedicationItemRequest(drugName, customDrugName, category, imageUrl, prescriptionFileName,
-                registrationType, effect, storageLocation, doseAmount, appearance, strength, intakeReason, startDate,
+                registrationType, effect, storageLocation, doseAmount, strength, appearance, intakeReason, startDate,
                 endDate, cycleType, intervalDays, intakeTiming, frequency, notifyOnMiss, mealTimeSlots);
     }
 }

@@ -24,8 +24,8 @@ public record MedicationUpdateRequest(
         @JsonProperty("notify_on_miss") Boolean notifyOnMiss,
         @JsonProperty("storage_location") @Pattern(regexp = ".*\\S.*") @Size(max = 100) String storageLocation,
         @JsonProperty("dose_amount") @Size(max = 20) String doseAmount,
+        @Size(max = 20) String strength,                                         // 빈 문자열이면 삭제
         @Size(max = 50) String appearance,
-        @Size(max = 30) String strength,
         @JsonProperty("intake_reason") @Size(max = 1000) String intakeReason,
         @JsonProperty("start_date") LocalDate startDate,
         @JsonProperty("end_date") LocalDate endDate,

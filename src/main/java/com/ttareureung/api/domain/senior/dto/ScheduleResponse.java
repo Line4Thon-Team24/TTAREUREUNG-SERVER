@@ -22,7 +22,7 @@ public record ScheduleResponse(
     public record Session(
             @Schema(description = "오늘 회차만 있음. 다른 날짜는 null", example = "12") Long sessionId,
             MealTimeSlot timeSlot,
-            @Schema(example = "아침 식후") String slotName,
+            @Schema(example = "아침") String slotName,
             @Schema(example = "11:00", type = "string") @JsonFormat(pattern = "HH:mm") LocalTime doseTime,
             DoseSessionStatus status,
             @Schema(description = "전화 받은 시각", example = "2026-11-08T11:08:00") LocalDateTime answeredAt,
@@ -33,9 +33,9 @@ public record ScheduleResponse(
     public record Medication(
             @Schema(example = "3") Long medicationId,
             @Schema(example = "관절약") String name,
-            @Schema(example = "1정") String doseAmount,
-            @Schema(description = "함량", example = "5mg") String strength,
-            @Schema(description = "약 사진 링크(1시간 유효). 없으면 null") String imageUrl,
+            @Schema(description = "함량. 없으면 null", example = "5mg") String strength,
+            @Schema(description = "1회 복용량", example = "1정") String doseAmount,
+            @Schema(description = "약 사진 조회 링크. 사진이 없으면 null") String imageUrl,
             MedicationStatus status
     ) {
     }

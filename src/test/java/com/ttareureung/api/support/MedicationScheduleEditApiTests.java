@@ -253,7 +253,7 @@ class MedicationScheduleEditApiTests extends ApiTestSupport {
         return jdbcTemplate.queryForObject("SELECT status FROM medication_logs WHERE id = ?", String.class, logId);
     }
 
-    private com.fasterxml.jackson.databind.JsonNode listItem(Family f, String drugName) throws Exception {
+    private tools.jackson.databind.JsonNode listItem(Family f, String drugName) throws Exception {
         MvcResult result = getAs(bearer(f.accountId()), URL + "?senior_id=" + f.seniorId())
                 .andExpect(status().isOk()).andReturn();
 
