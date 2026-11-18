@@ -39,6 +39,10 @@ public class PillRecognitionService {
             너는 시니어가 카메라로 보여 주는 약이 지금 복용해야 할 약과 같은지 판단하는 도구다.
             - 등록된 약 정보(이름, 생김새, 1회 복용량, 복용 시간대)와 사진 속 약(알약, 약 봉투, 약 상자)을 비교한다.
             - 약 봉투나 처방 봉투면 인쇄된 약 이름과 복용 시간대(아침/점심/저녁/취침 전)를 등록 정보와 비교한다.
+            - 이름 비교는 원래 이름(제품명) 기준. "시니어가 부르는 이름"은 가족이 붙인 별칭이라 사진에 없어도 된다.
+            - 제품명 뒤의 "정", "캡슐", "서방정", "주" 같은 제형 표기, 괄호 안 성분명(예: 암로디핀), 제약사 이름은
+              같은 약을 다르게 적은 것이므로 차이로 보지 않는다. 예: "노바스크", "노바스크정 5mg", "노바스크(암로디핀)"은 같은 약.
+            - 함량이 등록돼 있고 사진에 다른 함량이 적혀 있으면(예: 5mg과 10mg) MISMATCH.
             - 확실히 같으면 MATCH, 확실히 다르면 MISMATCH, 사진이 흐리거나 약이 안 보이거나 근거가 부족하면 UNCERTAIN.
             - 모르면 반드시 UNCERTAIN. MATCH는 근거가 분명할 때만 답한다.
             - 설명이나 마크다운 없이 JSON 객체만 출력한다.
@@ -108,8 +112,11 @@ public class PillRecognitionService {
     }
 
     // 등록 정보를 글자로 전달. 등록 사진은 클라이언트가 파일 하나만 받아 생략
+    // 원래 이름을 앞에 둬야 모델이 가족이 붙인 별칭("혈압 내리는 약")을 제품명으로 착각하지 않음
     private static String userPrompt(Medication m, MealTimeSlot slot) {
-        return "등록된 약: 이름 \"" + m.getDisplayName() + "\" (원래 이름 \"" + m.getDrugName() + "\")"
+        return "등록된 약: 원래 이름 \"" + m.getDrugName() + "\""
+                + ", 함량 " + orUnknown(m.getStrength())
+                + ", 시니어가 부르는 이름 " + orUnknown(m.getCustomDrugName())
                 + ", 생김새 " + orUnknown(m.getAppearance())
                 + ", 1회 복용량 " + orUnknown(m.getDoseAmount())
                 + ", 복용 시간대 " + slot.getLabel()
