@@ -68,6 +68,12 @@ public class GuardianSenior extends BaseTimeEntity {
         this.isPrimary = isPrimary;
     }
 
+    // 보호자 목록 편집 "담당 시니어 변경". linkId 유지가 목적이라 삭제 후 재생성 대신 시니어만 교체
+    public void changeSenior(Profile senior, boolean isPrimary) {
+        this.senior = senior;
+        this.isPrimary = isPrimary;
+    }
+
     // 프로필 목록에서 "OOO 시니어 담당"처럼 상대 프로필 표시용
     public Profile counterpartOf(Long profileId) {
         return guardian.getId().equals(profileId) ? senior : guardian;

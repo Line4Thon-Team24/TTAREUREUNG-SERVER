@@ -32,7 +32,10 @@ public record ProfileUpdateRequest(
 
         @Size(max = 20, message = "관계는 20자 이하여야 합니다.")
         @Schema(example = "어머니", description = "빈 문자열을 보내면 삭제", maxLength = 20)
-        String relationship
+        String relationship,
+
+        @Schema(example = "true", description = "즐겨찾기 설정·해제. 가족 계정 공통")
+        Boolean isFavorite
 ) {
     public ProfileUpdateRequest {
         name = name == null ? null : name.strip();

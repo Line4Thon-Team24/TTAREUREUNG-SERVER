@@ -70,6 +70,10 @@ public class Profile extends BaseTimeEntity {
     @Column(nullable = false, length = 20)
     private ProfileRole role;
 
+    // 시니어 목록 "즐겨찾기" 필터. 가족 계정 공통 값(보호자별 아님). 기존 행은 false로 채움
+    @Column(name = "is_favorite", nullable = false, columnDefinition = "boolean not null default false")
+    private boolean isFavorite;
+
     public Profile(Account account, String name, LocalDate birthDate, Gender gender,
                    String phoneNumber, String relationship, ProfileRole role) {
         this.account = account;
@@ -87,5 +91,9 @@ public class Profile extends BaseTimeEntity {
         this.gender = gender;
         this.phoneNumber = phoneNumber;
         this.relationship = relationship;
+    }
+
+    public void changeFavorite(boolean isFavorite) {
+        this.isFavorite = isFavorite;
     }
 }

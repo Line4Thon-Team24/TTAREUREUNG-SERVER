@@ -2,7 +2,9 @@ package com.ttareureung.api.domain.medication.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.ttareureung.api.domain.medication.entity.CycleType;
+import com.ttareureung.api.domain.medication.entity.IntakeTiming;
 import com.ttareureung.api.domain.medication.entity.MealTimeSlot;
+import com.ttareureung.api.domain.medication.entity.RegistrationType;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -13,14 +15,19 @@ public record MedicationListResponse(List<MedicationItem> medications) {
             @JsonProperty("medication_id") Long medicationId,
             @JsonProperty("drug_name") String drugName,
             @JsonProperty("custom_drug_name") String customDrugName,
+            String category,
             @JsonProperty("image_url") String imageUrl,
+            @JsonProperty("prescription_file_name") String prescriptionFileName,
+            @JsonProperty("registration_type") RegistrationType registrationType,
             String effect,
             @JsonProperty("storage_location") String storageLocation,
             @JsonProperty("dose_amount") String doseAmount,
-            String appearance,
+            String appearance, String strength, 
             @JsonProperty("intake_reason") String intakeReason,
             String frequency,
             @JsonProperty("cycle_type") CycleType cycleType,
+            @JsonProperty("interval_days") int intervalDays,
+            @JsonProperty("intake_timing") IntakeTiming intakeTiming,
             @JsonProperty("meal_time_slots") List<MealTimeSlot> mealTimeSlots,
             @JsonProperty("notify_on_miss") boolean notifyOnMiss,
             @JsonProperty("start_date") LocalDate startDate,
