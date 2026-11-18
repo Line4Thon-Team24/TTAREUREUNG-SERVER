@@ -1,5 +1,7 @@
 package com.ttareureung.api.domain.profile.service;
 
+import com.ttareureung.api.domain.guardian.service.SeniorAccessValidator;
+import com.ttareureung.api.domain.profile.dto.GuardianSeniorChangeRequest;
 import com.ttareureung.api.domain.profile.dto.GuardianSeniorCreateRequest;
 import com.ttareureung.api.domain.profile.dto.GuardianSeniorResponse;
 import com.ttareureung.api.domain.profile.entity.GuardianSenior;
@@ -24,10 +26,13 @@ import java.util.List;
 public class GuardianSeniorService {
 
     private final ProfileAccessChecker accessChecker;
+    private final SeniorAccessValidator seniorAccess;
     private final GuardianSeniorRepository links;
 
-    public GuardianSeniorService(ProfileAccessChecker accessChecker, GuardianSeniorRepository links) {
+    public GuardianSeniorService(ProfileAccessChecker accessChecker, SeniorAccessValidator seniorAccess,
+                                 GuardianSeniorRepository links) {
         this.accessChecker = accessChecker;
+        this.seniorAccess = seniorAccess;
         this.links = links;
     }
 
@@ -76,6 +81,51 @@ public class GuardianSeniorService {
                     .findFirst()
                     .ifPresent(next -> next.changePrimary(true));
         }
+    }
+
+    /**
+     * 담당 시니어 변경. linkId는 유지하고 시니어만 교체
+     * 새 시니어는 요청 계정이 접근 가능한 시니어여야 함. 대표였으면 원래 시니어 쪽은 남은 연결에 승계
+     */
+    public GuardianSeniorResponse changeSenior(Long accountId, Long linkId, GuardianSeniorChangeRequest request) {
+        accessChecker.activeAccount(accountId);
+        GuardianSenior link = links.findByIdAndAccountId(linkId, accountId)
+                .orElseThrow(() -> new CustomException(ProfileErrorCode.LINK_NOT_FOUND));
+        Profile newSenior = seniorAccess.requireSenior(accountId, request.seniorProfileId());
+        Long oldSeniorId = link.getSenior().getId();
+        if (oldSeniorId.equals(newSenior.getId())) {
+            return GuardianSeniorResponse.from(link);
+        }
+        if (links.existsByGuardianIdAndSeniorId(link.getGuardian().getId(), newSenior.getId())) {
+            throw new CustomException(ProfileErrorCode.ALREADY_LINKED);
+        }
+
+        // 두 시니어의 연결을 id 작은 쪽부터 잠가 동시 변경 시 교착 방지
+        Long first = Math.min(oldSeniorId, newSenior.getId());
+        Long second = Math.max(oldSeniorId, newSenior.getId());
+        List<GuardianSenior> firstLinks = links.findAllBySeniorProfileIdWithLock(first);
+        List<GuardianSenior> secondLinks = links.findAllBySeniorProfileIdWithLock(second);
+        List<GuardianSenior> oldLinks = first.equals(oldSeniorId) ? firstLinks : secondLinks;
+        List<GuardianSenior> newLinks = first.equals(oldSeniorId) ? secondLinks : firstLinks;
+
+        boolean wasPrimary = link.isPrimary();
+        link.changeSenior(newSenior, newLinks.isEmpty());
+        if (wasPrimary) {
+            oldLinks.stream()
+                    .filter(other -> !other.getId().equals(linkId))
+                    .findFirst()
+                    .ifPresent(next -> next.changePrimary(true));
+        }
+        try {
+            links.flush();
+        } catch (DataIntegrityViolationException e) {
+            // 동시 요청으로 같은 보호자-시니어 조합이 먼저 생긴 경우
+            if (e.getMostSpecificCause() instanceof SQLException sql && sql.getErrorCode() == 1062) {
+                throw new CustomException(ProfileErrorCode.ALREADY_LINKED);
+            }
+            throw e;
+        }
+        return GuardianSeniorResponse.from(link);
     }
 
     // profileId가 없으면 계정 전체 연결, 있으면 해당 프로필이 포함된 연결만

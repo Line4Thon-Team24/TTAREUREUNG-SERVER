@@ -1,5 +1,6 @@
 package com.ttareureung.api.domain.profile.controller;
 
+import com.ttareureung.api.domain.profile.dto.GuardianSeniorChangeRequest;
 import com.ttareureung.api.domain.profile.dto.GuardianSeniorCreateRequest;
 import com.ttareureung.api.domain.profile.dto.GuardianSeniorResponse;
 import com.ttareureung.api.domain.profile.service.GuardianSeniorService;
@@ -18,6 +19,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -68,7 +70,20 @@ public class GuardianSeniorController {
         return ResponseEntity.ok(BaseResponse.successWithoutData());
     }
 
-    @Operation(summary = "연결 목록 조회", description = "profileId를 넣으면 그 프로필의 연결만, 없으면 계정 전체 연결을 반환합니다. 보호자 화면의 담당 시니어 목록에 사용합니다.")
+    @Operation(summary = "담당 시니어 변경", description = "보호자 목록 편집 드롭다운. 연결의 시니어를 바꾸고 linkId는 유지합니다. 새 시니어는 내가 접근 가능한 시니어여야 합니다. 대표 보호자였다면 원래 시니어의 대표는 남은 보호자에게 넘어가고, 새 시니어에 다른 보호자가 없으면 대표가 됩니다.")
+    @ApiResponse(responseCode = "200", description = "변경 성공")
+    @ApiResponse(responseCode = "400", description = "입력값 오류 또는 시니어 프로필이 아님 (MEDICATION_003)", content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+    @ApiResponse(responseCode = "403", description = "비활성 계정 (AUTH_005)", content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+    @ApiResponse(responseCode = "404", description = "없는 연결 (PROFILE_005), 접근 불가한 시니어 (PROFILE_002)", content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+    @ApiResponse(responseCode = "409", description = "이미 그 시니어와 연결된 보호자 (PROFILE_004)", content = @Content(schema = @Schema(implementation = BaseResponse.class)))
+    @PatchMapping(value = "/{linkId}", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<BaseResponse<GuardianSeniorResponse>> changeSenior(@AuthenticationPrincipal Jwt jwt,
+                                                                             @PathVariable Long linkId,
+                                                                             @Valid @RequestBody GuardianSeniorChangeRequest request) {
+        return ResponseEntity.ok(BaseResponse.success(guardianSeniorService.changeSenior(accountId(jwt), linkId, request)));
+    }
+
+    @Operation(summary = "연결 목록 조회", description = "profileId를 넣으면 그 프로필의 연결만, 없으면 계정 전체 연결을 반환합니다. 다른 계정에서 초대로 들어온 보호자의 연결도 포함합니다. 보호자 카드용 생년월일·성별·전화번호가 함께 옵니다.")
     @ApiResponse(responseCode = "200", description = "조회 성공")
     @ApiResponse(responseCode = "400", description = "profileId 형식 오류", content = @Content(schema = @Schema(implementation = BaseResponse.class)))
     @ApiResponse(responseCode = "401", description = "Access Token 누락·만료", content = @Content(schema = @Schema(implementation = BaseResponse.class)))

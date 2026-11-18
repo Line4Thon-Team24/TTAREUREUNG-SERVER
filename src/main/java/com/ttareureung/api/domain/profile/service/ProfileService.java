@@ -96,6 +96,9 @@ public class ProfileService {
                 keepIfNull(request.gender(), profile.getGender()),
                 clearIfEmpty(request.phoneNumber(), profile.getPhoneNumber()),
                 clearIfEmpty(request.relationship(), profile.getRelationship()));
+        if (request.isFavorite() != null) {
+            profile.changeFavorite(request.isFavorite());
+        }
         return withLinks(profile);
     }
 

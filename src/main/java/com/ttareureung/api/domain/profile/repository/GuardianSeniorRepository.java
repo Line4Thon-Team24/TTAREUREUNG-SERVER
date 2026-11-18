@@ -14,10 +14,11 @@ import java.util.Optional;
 // 응답에 양쪽 프로필 이름이 필요해서 fetch join으로 한 번에 조회 (N+1 방지)
 public interface GuardianSeniorRepository extends JpaRepository<GuardianSenior, Long> {
 
+    // 초대로 들어온 다른 계정 보호자도 보호자 목록에 보이도록 시니어 쪽 계정 기준도 포함
     @Query("""
             select gs from GuardianSenior gs
             join fetch gs.guardian join fetch gs.senior
-            where gs.guardian.account.id = :accountId
+            where gs.guardian.account.id = :accountId or gs.senior.account.id = :accountId
             order by gs.id
             """)
     List<GuardianSenior> findAllInAccount(Long accountId);
