@@ -27,7 +27,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest(properties = {
         "jwt.secret=auth-test-secret-key-at-least-32-bytes",
-        "jwt.cookie.secure=false"
+        "jwt.cookie.secure=false",
+        "jwt.cookie.same-site=Lax"
 })
 @AutoConfigureMockMvc(print = MockMvcPrint.NONE)
 public abstract class ApiTestSupport {
