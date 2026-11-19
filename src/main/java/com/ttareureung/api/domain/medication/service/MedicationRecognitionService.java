@@ -15,6 +15,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Slf4j
 @Service
@@ -24,6 +26,10 @@ public class MedicationRecognitionService {
     private static final Set<String> ALLOWED_TYPES =
             Set.of("image/jpeg", "image/png", "image/webp", "application/pdf");
     private static final Set<String> REGION_FIELDS = Set.of("DRUG_NAME", "INTAKE_METHOD", "FREQUENCY");
+
+    // "하루 2회", "1일 3회", "1일2회", "매일 1번", "하루 두 번" 등에서 횟수를 뽑는다
+    private static final Pattern TIMES_PER_DAY =
+            Pattern.compile("(?:하루|1\\s*일|매일)\\s*(?:에)?\\s*(\\d+|한|두|세|네)\\s*(?:회|번)");
 
     private static final String SYSTEM_PROMPT = """
             너는 처방전·약봉투·약 사진에서 복약 정보를 추출하는 도구다.
@@ -36,7 +42,7 @@ public class MedicationRecognitionService {
             - custom_drug_name은 시니어가 쉽게 알아볼 이름("허리 통증 줄여주는 약")으로, 문서에 적힌 효능·효과 문구에서만 만든다. 효능·효과가 없으면 null로 둔다. 병명이나 진단을 추측하지 않는다.
             - intake_reason은 문서에 적힌 처방 목적·복용 이유 문구만 옮긴다. 없으면 null로 두고 추측하지 않는다.
             - storage_location은 문서에 약을 두는 장소가 명시된 경우에만 적는다. 보관 온도 안내나 일반 주의 문구는 쓰지 않는다. 대부분 null이다.
-            - meal_time_slots는 MORNING, LUNCH, DINNER, BEFORE_SLEEP 중에서만 고르고, 알 수 없으면 빈 배열로 둔다.
+            - meal_time_slots는 반드시 영문 값 MORNING(아침·조식), LUNCH(점심·중식), DINNER(저녁·석식), BEFORE_SLEEP(취침 전·자기 전) 중에서 고른다. 약봉투나 처방전에 아침/점심/저녁/취침전 칸의 체크·동그라미·숫자 표시가 있거나 "아침 저녁 식후"처럼 끼니가 글자로 적혀 있으면 그 끼니를 모두 넣는다. 끼니가 문서에 전혀 없으면 빈 배열로 둔다.
             - intake_timing은 BEFORE_MEAL_30M(식사 30분 전), AFTER_MEAL_30M(식사 30분 후), RIGHT_AFTER_MEAL(식사 직후), BEFORE_BED(취침 전) 중 하나로 적고, 알 수 없으면 null로 둔다.
             - interval_days는 복용 간격을 일 단위 정수로 적는다. 매일이면 1, 이틀에 한 번이면 2, 일주일에 한 번이면 7이고, 알 수 없으면 null로 둔다.
             - frequency는 "하루 3회, 식후 30분" 같은 한국어 문장으로 적는다.
@@ -103,11 +109,20 @@ public class MedicationRecognitionService {
         if (drugName == null) {
             return null;
         }
+        String frequency = clean(m.frequency(), 100);
+        IntakeTiming intakeTiming = enumOrNull(IntakeTiming.class, m.intakeTiming());
+
+        // 문서에 적힌 끼니를 우선 쓰고(한글 응답도 허용), 없으면 하루 복용 횟수로 기본 끼니를 채운다
         List<MealTimeSlot> slots = m.mealTimeSlots() == null ? List.of() : m.mealTimeSlots().stream()
-                .map(s -> enumOrNull(MealTimeSlot.class, s))
+                .map(MealTimeSlot::from)
                 .filter(Objects::nonNull)
                 .distinct()
+                .sorted()
                 .toList();
+        if (slots.isEmpty()) {
+            slots = defaultSlots(frequency, intakeTiming);
+        }
+
         Integer interval = m.intervalDays() != null && m.intervalDays() >= 1 && m.intervalDays() <= 30
                 ? m.intervalDays() : null;
         Integer confidence = m.confidence() == null ? null : Math.max(0, Math.min(100, m.confidence()));
@@ -120,13 +135,54 @@ public class MedicationRecognitionService {
                 clean(m.effect(), 1000),
                 clean(m.intakeReason(), 1000),
                 clean(m.storageLocation(), 100),
-                clean(m.frequency(), 100),
+                frequency,
                 clean(m.doseAmount(), 20),
                 interval,
-                enumOrNull(IntakeTiming.class, m.intakeTiming()),
+                intakeTiming,
                 slots,
                 confidence,
                 toRegions(m.regions(), withRegions));
+    }
+
+    // 끼니가 문서에 없을 때 쓰는 기본값: 1회 아침(취침 전 복용이면 자기 전), 2회 아침·저녁, 3회 아침·점심·저녁, 4회 + 자기 전
+    private static List<MealTimeSlot> defaultSlots(String frequency, IntakeTiming intakeTiming) {
+        boolean beforeBed = intakeTiming == IntakeTiming.BEFORE_BED;
+        Integer times = timesPerDay(frequency);
+        if (times == null) {
+            return beforeBed ? List.of(MealTimeSlot.BEFORE_SLEEP) : List.of();
+        }
+        return switch (times) {
+            case 1 -> beforeBed ? List.of(MealTimeSlot.BEFORE_SLEEP) : List.of(MealTimeSlot.MORNING);
+            case 2 -> List.of(MealTimeSlot.MORNING, MealTimeSlot.DINNER);
+            case 3 -> List.of(MealTimeSlot.MORNING, MealTimeSlot.LUNCH, MealTimeSlot.DINNER);
+            case 4 -> List.of(MealTimeSlot.MORNING, MealTimeSlot.LUNCH, MealTimeSlot.DINNER, MealTimeSlot.BEFORE_SLEEP);
+            default -> List.of();
+        };
+    }
+
+    // frequency 문장에서 하루 복용 횟수를 찾는다. 못 찾으면 null
+    private static Integer timesPerDay(String frequency) {
+        if (frequency == null) {
+            return null;
+        }
+        Matcher matcher = TIMES_PER_DAY.matcher(frequency);
+        if (!matcher.find()) {
+            return null;
+        }
+        String count = matcher.group(1);
+        return switch (count) {
+            case "한" -> 1;
+            case "두" -> 2;
+            case "세" -> 3;
+            case "네" -> 4;
+            default -> {
+                try {
+                    yield Integer.parseInt(count);
+                } catch (NumberFormatException e) {
+                    yield null;
+                }
+            }
+        };
     }
 
     // 허용한 필드만, 필드당 하나. 잘못된 박스는 버리고 다음 후보를 쓴다
