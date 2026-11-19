@@ -2,6 +2,7 @@ package com.ttareureung.api.domain.profile.service;
 
 import com.ttareureung.api.domain.medication.service.MedicationCleanupService;
 import com.ttareureung.api.domain.notification.service.NotificationSettingService;
+import com.ttareureung.api.domain.push.repository.PushSubscriptionRepository;
 import com.ttareureung.api.domain.senior.service.SeniorScheduleCleanupService;
 import com.ttareureung.api.domain.profile.dto.ProfileCreateRequest;
 import com.ttareureung.api.domain.profile.dto.ProfileResponse;
@@ -34,19 +35,22 @@ public class ProfileService {
     private final NotificationSettingService notificationSettingService;
     private final MedicationCleanupService medicationCleanupService;
     private final SeniorScheduleCleanupService scheduleCleanupService;
+    private final PushSubscriptionRepository pushSubscriptions;
 
     public ProfileService(ProfileAccessChecker accessChecker,
                           ProfileRepository profiles,
                           GuardianSeniorRepository links,
                           NotificationSettingService notificationSettingService,
                           MedicationCleanupService medicationCleanupService,
-                          SeniorScheduleCleanupService scheduleCleanupService) {
+                          SeniorScheduleCleanupService scheduleCleanupService,
+                          PushSubscriptionRepository pushSubscriptions) {
         this.accessChecker = accessChecker;
         this.profiles = profiles;
         this.links = links;
         this.notificationSettingService = notificationSettingService;
         this.medicationCleanupService = medicationCleanupService;
         this.scheduleCleanupService = scheduleCleanupService;
+        this.pushSubscriptions = pushSubscriptions;
     }
 
     public ProfileResponse create(Long accountId, ProfileCreateRequest request) {
@@ -119,6 +123,7 @@ public class ProfileService {
             handOverPrimary(profile);                               // 대표 보호자 승계
         }
         notificationSettingService.deleteByProfileId(profileId);
+        pushSubscriptions.deleteAllByProfileId(profileId);
         links.deleteAllByProfileId(profileId);
         profiles.delete(profile);
     }
