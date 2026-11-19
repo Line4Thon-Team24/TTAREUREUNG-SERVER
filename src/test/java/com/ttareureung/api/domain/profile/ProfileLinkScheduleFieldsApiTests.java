@@ -48,6 +48,21 @@ class ProfileLinkScheduleFieldsApiTests extends ApiTestSupport {
     }
 
     @Test
+    void profileResponsesIncludeAccountEmail() throws Exception {
+        Family f = newFamily();
+        String token = bearer(f.accountId());
+        String email = jdbcTemplate.queryForObject("SELECT email FROM accounts WHERE id = ?", String.class, f.accountId());
+
+        getAs(token, "/api/v1/profiles")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[0].email").value(email))
+                .andExpect(jsonPath("$.data[1].email").value(email));
+        getAs(token, "/api/v1/profiles/" + f.seniorId()).andExpect(jsonPath("$.data.email").value(email));
+        patchJson(token, "/api/v1/profiles/" + f.seniorId(), Map.of("name", "김순자"))
+                .andExpect(jsonPath("$.data.email").value(email));
+    }
+
+    @Test
     void linkListShowsGuardianDetailsIncludingInvitedGuardianOfAnotherAccount() throws Exception {
         Family f = newFamily();
         String tokenA = bearer(f.accountId());
