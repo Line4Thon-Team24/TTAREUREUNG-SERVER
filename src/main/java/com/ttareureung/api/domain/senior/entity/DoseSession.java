@@ -81,6 +81,10 @@ public class DoseSession extends BaseTimeEntity {
     @Column(name = "next_call_at")
     private LocalDateTime nextCallAt;
 
+    // 마지막 전화 푸시 발송 시각. 재전화로 next_call_at이 뒤로 밀리면 다시 발송
+    @Column(name = "call_pushed_at")
+    private LocalDateTime callPushedAt;
+
     public DoseSession(Profile senior, LocalDate targetDate, MealTimeSlot timeSlot, LocalDateTime scheduledAt) {
         this.senior = senior;
         this.targetDate = targetDate;
@@ -109,6 +113,16 @@ public class DoseSession extends BaseTimeEntity {
 
     public boolean isWaitingForCall() {
         return status == DoseSessionStatus.SCHEDULED;
+    }
+
+    // 전화 시각이 됐고 이번 시각에 대해 아직 푸시를 안 보낸 회차
+    public boolean needsCallPush(LocalDateTime now) {
+        return status == DoseSessionStatus.SCHEDULED && nextCallAt != null && !nextCallAt.isAfter(now)
+                && (callPushedAt == null || callPushedAt.isBefore(nextCallAt));
+    }
+
+    public void markCallPushed(LocalDateTime now) {
+        this.callPushedAt = now;
     }
 
     // 같은 회차를 두 번 받아도 첫 통화 시각 유지
