@@ -46,4 +46,19 @@ public interface DoseSessionRepository extends JpaRepository<DoseSession, Long> 
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("delete from DoseSession s where s.senior.id = :seniorId")
     int deleteAllBySeniorId(@Param("seniorId") Long seniorId);
+
+    // 푸시 스케줄러: 오늘 약이 있는 시니어. 회차 행은 조회 시점에 만들어져 앱이 꺼져 있으면 없을 수 있음
+    @Query("""
+            select distinct m.seniorProfileId from MedicationLog l join l.medication m
+            where l.targetDate = :date
+            """)
+    List<Long> findSeniorIdsWithLogsOn(@Param("date") LocalDate date);
+
+    // 푸시 스케줄러: 오늘 아직 전화 전인 회차 (시니어도 함께 조회)
+    @Query("""
+            select s from DoseSession s join fetch s.senior
+            where s.targetDate = :date
+              and s.status = com.ttareureung.api.domain.senior.entity.DoseSessionStatus.SCHEDULED
+            """)
+    List<DoseSession> findScheduledOn(@Param("date") LocalDate date);
 }

@@ -4,6 +4,7 @@ import com.ttareureung.api.domain.notification.entity.NotificationSetting;
 import com.ttareureung.api.domain.notification.repository.NotificationSettingRepository;
 import com.ttareureung.api.domain.profile.entity.GuardianSeniorStatus;
 import com.ttareureung.api.domain.profile.service.ProfileAccessChecker;
+import com.ttareureung.api.domain.push.service.PushNotifier;
 import com.ttareureung.api.domain.senior.dto.GuardianAlertListResponse;
 import com.ttareureung.api.domain.senior.dto.GuardianAlertResponse;
 import com.ttareureung.api.domain.senior.dto.UpcomingCall;
@@ -34,14 +35,17 @@ public class GuardianAlertService {
     private final GuardianAlertRepository alerts;
     private final DoseSessionRepository sessions;
     private final NotificationSettingRepository settings;
+    private final PushNotifier pushNotifier;
     private final Clock clock;
 
     public GuardianAlertService(ProfileAccessChecker accessChecker, GuardianAlertRepository alerts,
-                                DoseSessionRepository sessions, NotificationSettingRepository settings, Clock clock) {
+                                DoseSessionRepository sessions, NotificationSettingRepository settings,
+                                PushNotifier pushNotifier, Clock clock) {
         this.accessChecker = accessChecker;
         this.alerts = alerts;
         this.sessions = sessions;
         this.settings = settings;
+        this.pushNotifier = pushNotifier;
         this.clock = clock;
     }
 
@@ -50,7 +54,9 @@ public class GuardianAlertService {
         if (type == GuardianAlertType.MISSED && alerts.existsBySessionIdAndType(session.getId(), type)) {
             return null;
         }
-        return alerts.save(new GuardianAlert(session, type, now()));
+        GuardianAlert saved = alerts.save(new GuardianAlert(session, type, now()));
+        pushNotifier.guardianAlert(saved);
+        return saved;
     }
 
     public boolean exists(DoseSession session, GuardianAlertType type) {
